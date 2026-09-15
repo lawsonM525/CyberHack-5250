@@ -116,7 +116,7 @@ export const CAMERA_WALLS: Rect[] = [
   rect(1.7, ROOM.z0 - 0.45, DOORWAY.x0, ROOM.z0), // north, beside the balcony
   rect(DOORWAY.x1, ROOM.z0 - 0.45, 5.15, ROOM.z0), // north, balcony-side pier
   rect(5.15, -6.4, ROOM.x1 + 12, ROOM.z0), // north, east of the balcony
-  rect(-10, -30, 14, -19.3), // Kingsley Row facade behind the far balcony
+  rect(-10, -30, 14, -18.7), // Kingsley Row facade and balcony recess wall
 ]
 
 /** Tall furniture the boom should ride around instead of burying itself in. */
