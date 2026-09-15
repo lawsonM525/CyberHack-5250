@@ -261,6 +261,11 @@ export const useGame = create<GameState>((set, get) => ({
   savePosition: (pos, facing) => set({ lastPosition: pos, lastFacing: facing }),
 }))
 
+if (import.meta.env.DEV) {
+  // handle for scripted play-through checks in the dev build
+  ;(window as unknown as { __game?: typeof useGame }).__game = useGame
+}
+
 /** Persist a snapshot of the current run. Safe to call often. */
 export function persist(): void {
   const s = useGame.getState()

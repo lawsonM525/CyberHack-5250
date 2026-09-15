@@ -274,17 +274,43 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
         />
       </mesh>
       {/* balcony recess wall */}
-      <mesh position={[3.7, 1.6, -17.4]}>
+      <mesh position={[3.7, 1.6, -19.55]}>
         <boxGeometry args={[6.2, 6, 1.6]} />
         <meshStandardMaterial map={concrete} color="#2a2d36" roughness={0.95} />
       </mesh>
+      {/* her door, and the bell beside it */}
+      <group position={[3.7, 1.02, -18.73]}>
+        <mesh>
+          <planeGeometry args={[1.15, 2.05]} />
+          <meshStandardMaterial color="#241a22" roughness={0.6} metalness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.5, 0.012]}>
+          <planeGeometry args={[0.85, 0.7]} />
+          <meshStandardMaterial
+            color="#0b0d12"
+            emissive={crossed ? '#ffb46a' : '#2a2030'}
+            emissiveIntensity={crossed ? 1.5 : 0.35}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh position={[0.78, 0.15, 0.02]}>
+          <circleGeometry args={[0.075, 16]} />
+          <meshStandardMaterial
+            color="#14161d"
+            emissive={crossed ? '#7af0c0' : '#ff7ad0'}
+            emissiveIntensity={1.6}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
       {/* balcony deck */}
       <mesh receiveShadow position={[3.7, -0.05, -17.6]}>
         <boxGeometry args={[3.7, 0.16, 2.3]} />
         <meshStandardMaterial map={concrete} color="#32353f" roughness={0.9} />
       </mesh>
       {/* railings */}
-      <BalconyRail x={3.7} z={-18.72} w={3.7} />
+      <BalconyRail x={2.4} z={-16.47} w={0.9} />
+      <BalconyRail x={4.9} z={-16.47} w={1.1} />
       <mesh position={[1.9, 0.55, -17.6]}>
         <boxGeometry args={[0.08, 1.1, 2.3]} />
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
@@ -294,12 +320,12 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
       </mesh>
       {/* awning */}
-      <mesh castShadow position={[3.7, 2.5, -17.9]} rotation={[0.12, 0, 0]}>
+      <mesh castShadow position={[3.7, 2.5, -18.9]} rotation={[0.12, 0, 0]}>
         <boxGeometry args={[4.0, 0.08, 1.9]} />
         <meshStandardMaterial color="#4a2b3a" roughness={0.9} />
       </mesh>
       {/* access panel by the door */}
-      <group position={[1.95, 1.2, -18.0]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[1.95, 1.2, -18.4]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[0.34, 0.5, 0.07]} />
           <meshStandardMaterial color="#1b1e26" roughness={0.5} metalness={0.5} />
@@ -311,16 +337,18 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
       </group>
       <pointLight
         ref={lamp}
-        position={[3.7, 2.2, -17.8]}
+        position={[3.7, 2.2, -18.2]}
         color="#7af0c0"
         intensity={0.25}
         distance={9}
         decay={2}
       />
+      {/* warm porch light under the awning */}
+      <pointLight position={[3.7, 2.25, -18.35]} color="#ffb877" intensity={crossed ? 7 : 3.4} distance={7.5} decay={2} />
       {/* planter box + crate reward */}
-      <Planter position={[5.0, 0.03, -18.2]} radius={0.22} height={0.3} />
-      <CornerPalm position={[5.0, 0.33, -18.2]} scale={0.5} />
-      <group position={[2.45, 0.03, -18.15]}>
+      <Planter position={[5.15, 0.03, -18.35]} radius={0.22} height={0.3} />
+      <CornerPalm position={[5.15, 0.33, -18.35]} scale={0.5} />
+      <group position={[2.45, 0.03, -18.4]}>
         <mesh castShadow>
           <boxGeometry args={[0.5, 0.36, 0.4]} />
           <meshStandardMaterial color="#3a3326" roughness={0.9} />
@@ -398,7 +426,8 @@ export function HomeBalcony({ gateOpen }: { gateOpen: boolean }) {
       <Planter position={[4.75, 0.03, -5.0]} radius={0.2} height={0.28} />
       <CornerPalm position={[4.75, 0.31, -5.0]} scale={0.45} />
       <HangingVine position={[2.1, 2.3, -5.2]} length={0.9} strands={4} />
-      <pointLight position={[3.4, 2.1, -5.4]} color="#ffb765" intensity={1.1} distance={5} decay={2} />
+      <pointLight position={[3.4, 2.1, -5.4]} color="#ffb765" intensity={4.2} distance={7} decay={2} />
+      <pointLight position={[3.4, 0.9, -6.3]} color="#ff7ad0" intensity={1.6} distance={4.5} decay={2} />
     </group>
   )
 }

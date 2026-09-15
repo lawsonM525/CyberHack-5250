@@ -36,7 +36,8 @@ export const BLOCKERS: Rect[] = [
   rect(4.15, -0.25, 4.95, 0.65), // vanity stool
   rect(4.95, 2.15, 5.9, 3.65), // kitchenette counter
   rect(5.15, -3.25, 5.9, -2.35), // corner palm
-  rect(1.75, -6.65, 5.05, -6.45), // balcony railing (outer)
+  rect(1.75, -6.65, 3.0, -6.45), // balcony railing (outer, west of the gate)
+  rect(4.2, -6.65, 5.05, -6.45), // balcony railing (outer, east of the gate)
   rect(1.75, -6.65, 1.95, -4.55), // balcony railing (west)
   rect(4.85, -6.65, 5.05, -4.55), // balcony railing (east)
 ]
@@ -81,6 +82,8 @@ export function resolveMove(
 ): [number, number] {
   let x = fromX
   let z = fromZ
+  // spawned or nudged inside geometry: let her walk straight back out
+  if (!isWalkable(fromX, fromZ, bridgeOpen)) return [toX, toZ]
   if (isWalkable(toX, z, bridgeOpen)) x = toX
   if (isWalkable(x, toZ, bridgeOpen)) z = toZ
   if (x === fromX && z === fromZ && isWalkable(toX, toZ, bridgeOpen)) {
@@ -106,7 +109,7 @@ export function cameraBlocked(x: number, z: number): boolean {
   return false
 }
 
-export type InteractKind = 'computer' | 'inspect' | 'mirror'
+export type InteractKind = 'computer' | 'inspect' | 'mirror' | 'doorbell'
 
 export interface Interactable {
   id: string
@@ -130,4 +133,5 @@ export const INTERACTABLES: Interactable[] = [
   { id: 'books', kind: 'inspect', label: 'Stack of books', at: [2.3, 1.15, 3.85], radius: 1.0 },
   { id: 'vanity', kind: 'mirror', label: 'Check yourself out', at: [5.2, 1.2, 0.1], radius: 1.2 },
   { id: 'window', kind: 'inspect', label: 'Look out the window', at: [-0.1, 1.5, -4.3], radius: 1.1 },
+  { id: 'doorbell', kind: 'doorbell', label: 'Ring the bell', at: [4.48, 1.17, -18.6], radius: 1.5 },
 ]

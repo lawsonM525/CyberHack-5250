@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import type { MotionState } from './Character'
 import { HeroBody } from './Heroine'
 import { getLook } from '../content/presets'
-import { INTERACTABLES, cameraBlocked, resolveMove, WALKABLE } from './world'
+import { INTERACTABLES, cameraBlocked, resolveMove } from './world'
 import { useGame } from '../state/store'
 import { audio } from '../audio/audio'
 import { isPointerLocked, readInput } from './input'
@@ -175,11 +175,6 @@ export function Player({
     if (best !== focusRef.current) {
       focusRef.current = best
       onFocus(best)
-    }
-
-    // reaching the far balcony completes the mission
-    if (bridgeOpen && pos.current.y < WALKABLE.far.z1 - 0.15 && useGame.getState().stage === 'unlocked') {
-      useGame.getState().cross()
     }
 
     saveTimer.current += delta

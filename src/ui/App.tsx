@@ -235,6 +235,17 @@ function Hud() {
     const entry = INTERACTABLES.find((i) => i.id === id)
     if (!entry) return
     audio.uiTick()
+    if (entry.kind === 'doorbell') {
+      audio.chime()
+      const state = useGame.getState()
+      if (state.stage === 'unlocked') {
+        document.exitPointerLock?.()
+        state.cross()
+      } else {
+        state.pushToast('Kingsley Row', 'The bell rings somewhere deep in the flat. Orchid is taking her time.')
+      }
+      return
+    }
     if (entry.kind === 'computer') {
       document.exitPointerLock?.()
       setOverlay('computer')

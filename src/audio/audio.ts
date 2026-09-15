@@ -479,6 +479,27 @@ export class AudioEngine {
     o.stop(t + 0.12)
   }
 
+  chime(): void {
+    const ctx = this.ctx
+    if (!ctx || !this.started) return
+    const t = ctx.currentTime
+    ;[
+      [0, 76],
+      [0.28, 69],
+    ].forEach(([d, note]) => {
+      const o = ctx.createOscillator()
+      o.type = 'triangle'
+      o.frequency.value = mtof(note)
+      const g = this.env(o, 0.18, 0.004, 1.1, t + d)
+      const send = ctx.createGain()
+      send.gain.value = 0.55
+      g.connect(send)
+      send.connect(this.delay)
+      o.start(t + d)
+      o.stop(t + d + 1.4)
+    })
+  }
+
   notify(): void {
     const ctx = this.ctx
     if (!ctx || !this.started) return
