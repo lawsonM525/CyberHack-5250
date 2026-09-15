@@ -158,14 +158,18 @@ export function Player({
     const dirX = Math.sin(camYaw.current) * Math.cos(camPitch.current)
     const dirZ = Math.cos(camYaw.current) * Math.cos(camPitch.current)
     const dirY = Math.sin(camPitch.current)
-    let dist = DIST
-    for (let i = 4; i >= 1; i--) {
-      const d = (DIST * i) / 4
-      if (!cameraBlocked(pivot.x + dirX * d, pivot.z + dirZ * d)) {
-        dist = d
-        break
-      }
-      dist = MIN_DIST
+    // march out from her head and stop at the first obstruction, so the boom
+    // can never end up on the far side of a desk or doorframe
+    let dist = MIN_DIST
+    const STEPS = 14
+    for (let i = 1; i <= STEPS; i++) {
+      const d = (DIST * i) / STEPS
+      if (cameraBlocked(pivot.x + dirX * d, pivot.z + dirZ * d)) break
+      dist = Math.max(MIN_DIST, d - 0.14)
+    }
+    if (dist <= MIN_DIST && cameraBlocked(pivot.x + dirX * MIN_DIST, pivot.z + dirZ * MIN_DIST)) {
+      // pinned against something: hug her shoulder rather than sit in the wall
+      dist = 0.6
     }
     const desired = new THREE.Vector3(
       pivot.x + dirX * dist,
