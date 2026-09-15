@@ -58,6 +58,13 @@ function onMouseMove(e: MouseEvent) {
 
 function onPointerLockChange() {
   pointerLocked = document.pointerLockElement !== null
+  drainMouse()
+}
+
+/** Drops look deltas gathered while nobody was steering, so the boom never jumps. */
+export function drainMouse(): void {
+  pendingX = 0
+  pendingY = 0
 }
 
 function onBlur() {
@@ -88,6 +95,7 @@ export function installInput(): () => void {
 /** Disabled while an overlay owns the keyboard, so typing never drives the character. */
 export function setInputEnabled(value: boolean): void {
   enabled = value
+  drainMouse()
   if (!value) onBlur()
 }
 
@@ -95,13 +103,17 @@ export function isPointerLocked(): boolean {
   return pointerLocked
 }
 
+const LOOK_CLAMP = 140
+const clampLook = (v: number) => Math.max(-LOOK_CLAMP, Math.min(LOOK_CLAMP, v))
+
 export function readInput(): InputState {
   const state: InputState = {
     forward: (axes.up ? 1 : 0) - (axes.down ? 1 : 0),
     strafe: (axes.right ? 1 : 0) - (axes.left ? 1 : 0),
     run: running,
-    mouseX: pendingX,
-    mouseY: pendingY,
+    // a single frame can never whip the camera further than a quick flick
+    mouseX: clampLook(pendingX),
+    mouseY: clampLook(pendingY),
     recenter: recenterRequested,
   }
   pendingX = 0

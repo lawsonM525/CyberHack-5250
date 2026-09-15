@@ -7,7 +7,7 @@ import { getLook } from '../content/presets'
 import { INTERACTABLES, cameraBlocked, resolveMove } from './world'
 import { useGame } from '../state/store'
 import { audio } from '../audio/audio'
-import { isPointerLocked, readInput } from './input'
+import { drainMouse, isPointerLocked, readInput } from './input'
 
 const WALK = 2.05
 const RUN = 4.1
@@ -61,7 +61,11 @@ export function Player({
     camYaw.current = respawn.facing
     camPitch.current = 0.13
     camInit.current = false
-  }, [respawn])
+    drainMouse()
+    // a prompt from wherever she was standing before must not survive the teleport
+    focusRef.current = null
+    onFocus(null)
+  }, [respawn, onFocus])
 
   useFrame((_, rawDelta) => {
     const delta = Math.min(rawDelta, 0.1)
