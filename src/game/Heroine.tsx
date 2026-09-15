@@ -136,7 +136,8 @@ export function Heroine({
     mixer.update(reducedMotion ? delta * 0.6 : delta)
   })
 
-  return <primitive object={object} />
+  // the generated rig faces +X; the controller's yaw convention is -Z
+  return <primitive object={object} rotation-y={Math.PI / 2} />
 }
 
 class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {

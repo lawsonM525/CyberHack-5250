@@ -172,7 +172,7 @@ export function LookPreview({ lookId }: { lookId: LookId }) {
       shadows
       dpr={[1, 1.75]}
       gl={{ antialias: true }}
-      camera={{ fov: 30, position: [0.9, 1.35, 3.6] }}
+      camera={{ fov: 30, position: [0.1, 1.05, 2.25] }}
       style={{ width: '100%', height: '100%' }}
     >
       <PreviewCamera />
@@ -223,8 +223,8 @@ export function LookPreview({ lookId }: { lookId: LookId }) {
 function PreviewCamera() {
   const { camera } = useThree()
   useEffect(() => {
-    camera.position.set(0.95, 1.36, 3.5)
-    camera.lookAt(0, 0.98, 0)
+    camera.position.set(0.1, 1.05, 2.25)
+    camera.lookAt(0, 0.92, 0)
   }, [camera])
   return null
 }
@@ -232,8 +232,9 @@ function PreviewCamera() {
 function Turntable({ look }: { look: ReturnType<typeof getLook> }) {
   const g = useRef<THREE.Group>(null)
   const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 99 })
-  useFrame((_, d) => {
-    if (g.current) g.current.rotation.y += d * 0.32
+  // she sways around front-on rather than spinning away from camera
+  useFrame(({ clock }) => {
+    if (g.current) g.current.rotation.y = Math.PI + Math.sin(clock.elapsedTime * 0.35) * 0.6
   })
   return (
     <group ref={g} position={[0, 0, 0]}>
