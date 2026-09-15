@@ -39,6 +39,36 @@ function buildTowers(quality: 'low' | 'medium' | 'high'): Tower[] {
       hue: [188, 300, 268, 42, 330][Math.floor(rnd() * 5)],
     })
   }
+  // the district wraps around the block, so turning back from the span still reads as a city
+  const behind = quality === 'low' ? 10 : quality === 'medium' ? 16 : 22
+  for (let i = 0; i < behind; i++) {
+    const ring = i / behind
+    const z = 26 + ring * 150 + rnd() * 24
+    const x = (rnd() - 0.5) * (60 + ring * 220)
+    towers.push({
+      x,
+      z,
+      w: 10 + rnd() * 22,
+      d: 10 + rnd() * 20,
+      h: 30 + rnd() * 90,
+      seed: Math.floor(rnd() * 1000),
+      hue: [188, 300, 268, 42, 330][Math.floor(rnd() * 5)],
+    })
+  }
+  const flanks = quality === 'low' ? 8 : 14
+  for (let i = 0; i < flanks; i++) {
+    const side = i % 2 ? 1 : -1
+    const ring = i / flanks
+    towers.push({
+      x: side * (34 + ring * 120 + rnd() * 20),
+      z: -14 + rnd() * 44,
+      w: 12 + rnd() * 20,
+      d: 12 + rnd() * 22,
+      h: 34 + rnd() * 86,
+      seed: Math.floor(rnd() * 1000),
+      hue: [188, 300, 268, 42, 330][Math.floor(rnd() * 5)],
+    })
+  }
   return towers
 }
 
@@ -75,11 +105,44 @@ export function City({ quality }: { quality: 'low' | 'medium' | 'high' }) {
           <boxGeometry args={[t.w, t.h, t.d]} />
         </mesh>
       ))}
+      <HomeTower />
       <SkylineBackdrop />
       <Signage />
       <Traffic quality={quality} />
       <Drones quality={quality} />
       <StreetBelow />
+    </group>
+  )
+}
+
+/** The block the apartment itself sits in, seen when the camera turns back from the span. */
+function HomeTower() {
+  const facade = useMemo(() => facadePlate('b', 3, 10), [])
+  return (
+    <group>
+      <mesh position={[0, 8, 13]}>
+        <boxGeometry args={[34, 92, 17]} />
+        <meshStandardMaterial
+          color="#8f95a8"
+          map={facade}
+          emissiveMap={facade}
+          emissive="#ffffff"
+          emissiveIntensity={0.95}
+          roughness={0.86}
+        />
+      </mesh>
+      {/* the storeys below her floor, so the balcony reads as twelve floors up */}
+      <mesh position={[0, -21, -1]}>
+        <boxGeometry args={[24, 34, 13]} />
+        <meshStandardMaterial
+          color="#878da0"
+          map={facade}
+          emissiveMap={facade}
+          emissive="#ffffff"
+          emissiveIntensity={0.8}
+          roughness={0.88}
+        />
+      </mesh>
     </group>
   )
 }
@@ -261,8 +324,8 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
 
   return (
     <group>
-      {/* tower body */}
-      <mesh position={[0, 10, -26]}>
+      {/* tower body, held behind the balcony recess so it never fronts the deck */}
+      <mesh position={[0, 10, -29]}>
         <boxGeometry args={[30, 96, 18]} />
         <meshStandardMaterial
           color="#9aa0b4"

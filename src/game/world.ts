@@ -93,13 +93,20 @@ export function resolveMove(
   return [x, z]
 }
 
-/** Solid wall slabs, used to keep the camera from cutting through geometry. */
+/**
+ * Solid masses the camera must stay out of. They run well past the wall itself:
+ * a slab only as thick as the wall lets the boom overshoot and frame the city
+ * from outside the flat.
+ */
 export const CAMERA_WALLS: Rect[] = [
-  rect(ROOM.x0 - 0.3, ROOM.z1, ROOM.x1 + 0.3, ROOM.z1 + 0.3), // south
-  rect(ROOM.x0 - 0.3, ROOM.z0 - 0.3, ROOM.x0, ROOM.z1 + 0.3), // west
-  rect(ROOM.x1, ROOM.z0 - 0.3, ROOM.x1 + 0.3, ROOM.z1 + 0.3), // east
-  rect(ROOM.x0 - 0.3, ROOM.z0 - 0.3, DOORWAY.x0, ROOM.z0), // north, window side
-  rect(DOORWAY.x1, ROOM.z0 - 0.3, ROOM.x1 + 0.3, ROOM.z0), // north, past the door
+  rect(ROOM.x0 - 12, ROOM.z1, ROOM.x1 + 12, ROOM.z1 + 24), // south wall and the block behind it
+  rect(ROOM.x0 - 12, ROOM.z0 - 0.3, ROOM.x0, ROOM.z1 + 24), // west
+  rect(ROOM.x1, ROOM.z0 - 0.3, ROOM.x1 + 12, ROOM.z1 + 24), // east
+  rect(ROOM.x0 - 12, -6.4, 1.7, ROOM.z0), // north, window side and the air outside it
+  rect(1.7, ROOM.z0 - 0.45, DOORWAY.x0, ROOM.z0), // north, beside the balcony
+  rect(DOORWAY.x1, ROOM.z0 - 0.45, 5.15, ROOM.z0), // north, balcony-side pier
+  rect(5.15, -6.4, ROOM.x1 + 12, ROOM.z0), // north, east of the balcony
+  rect(-10, -30, 14, -19.3), // Kingsley Row facade behind the far balcony
 ]
 
 export function cameraBlocked(x: number, z: number): boolean {

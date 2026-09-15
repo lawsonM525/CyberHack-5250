@@ -8,6 +8,8 @@ export interface LookPreset {
   model: string
   /** Prefix of the retargeted clips that match this rig, e.g. `anim5`. */
   clips: string
+  /** Recoloured base-colour map in public/models; omitted keeps the GLB's own. */
+  skinTexture?: string
   skin: string
   skinShadow: string
   hair: 'afro' | 'braids' | 'locs'
@@ -48,6 +50,7 @@ export const LOOKS: LookPreset[] = [
     tagline: 'Liquid gold slip, sheer plum duster, dressed for the reveal.',
     model: 'heroine5-web.glb',
     clips: 'anim5',
+    skinTexture: 'heroine5-midas.webp',
     skin: '#5b3320',
     skinShadow: '#3d2115',
     hair: 'locs',
@@ -67,6 +70,7 @@ export const LOOKS: LookPreset[] = [
     tagline: 'Burgundy velvet, slipper socks, not leaving this apartment sober.',
     model: 'heroine5-web.glb',
     clips: 'anim5',
+    skinTexture: 'heroine5-velvet.webp',
     skin: '#5b3320',
     skinShadow: '#3d2115',
     hair: 'locs',

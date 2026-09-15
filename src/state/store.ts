@@ -52,7 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sensitivity: 1,
 }
 
-export const SPAWN: [number, number] = [0.6, 2.6]
+export const SPAWN: [number, number] = [0.6, 1.3]
 
 interface GameState {
   phase: Phase

@@ -1,4 +1,4 @@
-import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
@@ -12,6 +12,32 @@ type AnimName = (typeof ANIMS)[number]
 const animUrl = (clips: string, name: AnimName) =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`
+
+/** Per-look recolour of the shared generated body texture. */
+function useOutfitMap(file: string | undefined): THREE.Texture | null {
+  const [map, setMap] = useState<THREE.Texture | null>(null)
+  useEffect(() => {
+    if (!file) {
+      setMap(null)
+      return
+    }
+    let live = true
+    const loader = new THREE.TextureLoader()
+    loader.load(modelUrl(file), (t) => {
+      if (!live) {
+        t.dispose()
+        return
+      }
+      t.colorSpace = THREE.SRGBColorSpace
+      t.flipY = false
+      setMap(t)
+    })
+    return () => {
+      live = false
+    }
+  }, [file])
+  return map
+}
 
 /**
  * Generated heroine: a rigged GLB driven by three retargeted clips, cross-faded
@@ -27,6 +53,7 @@ export function Heroine({
   reducedMotion?: boolean
 }) {
   const { scene } = useGLTF(modelUrl(look.model))
+  const outfitMap = useOutfitMap(look.skinTexture)
   const idle = useGLTF(animUrl(look.clips, 'idle'))
   const walk = useGLTF(animUrl(look.clips, 'walk'))
   const run = useGLTF(animUrl(look.clips, 'run'))
@@ -42,6 +69,16 @@ export function Heroine({
       const mats = Array.isArray(child.material) ? child.material : [child.material]
       for (const mat of mats) {
         if (!(mat instanceof THREE.MeshStandardMaterial)) continue
+        if (outfitMap) {
+          const swapped = mat.clone()
+          swapped.map = outfitMap
+          child.material = swapped
+          swapped.roughness = Math.max(swapped.roughness, 0.82)
+          swapped.metalness = Math.min(swapped.metalness, 0.05)
+          swapped.envMapIntensity = 0.35
+          swapped.needsUpdate = true
+          continue
+        }
         mat.roughness = Math.max(mat.roughness, 0.82)
         mat.metalness = Math.min(mat.metalness, 0.05)
         mat.envMapIntensity = 0.35
@@ -49,7 +86,7 @@ export function Heroine({
       }
     })
     return o
-  }, [scene])
+  }, [scene, outfitMap])
 
   const mixer = useMemo(() => new THREE.AnimationMixer(object), [object])
   const actions = useMemo(() => {

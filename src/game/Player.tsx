@@ -14,7 +14,10 @@ const RUN = 4.1
 const ACCEL = 14
 const HEAD = 1.12
 const DIST = 3.05
-const MIN_DIST = 0.85
+const MIN_DIST = 1.2
+/** Where the boom swings for the arrival reveal: back across the span, over the city. */
+const REVEAL_YAW = Math.PI * 0.92
+const REVEAL_PITCH = 0.2
 
 export function Player({
   active,
@@ -42,7 +45,14 @@ export function Player({
   const focusRef = useRef<string | null>(null)
   const saveTimer = useRef(0)
   const camInit = useRef(false)
+  const reveal = useRef(0)
+  const lastStage = useRef(stage)
   const { camera } = useThree()
+
+  useEffect(() => {
+    if (stage === 'crossed' && lastStage.current !== 'crossed') reveal.current = 5
+    lastStage.current = stage
+  }, [stage])
 
   useEffect(() => {
     pos.current.set(respawn.at[0], respawn.at[1])
@@ -57,7 +67,18 @@ export function Player({
     const delta = Math.min(rawDelta, 0.1)
     const input = readInput()
 
+    if (reveal.current > 0) {
+      reveal.current = Math.max(0, reveal.current - delta)
+      const k = Math.min(1, delta * 1.6)
+      let diff = REVEAL_YAW - camYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      camYaw.current += diff * k
+      camPitch.current += (REVEAL_PITCH - camPitch.current) * k
+    }
+
     if (active) {
+      if (input.mouseX || input.mouseY) reveal.current = 0
       const sens = 0.0022 * settings.sensitivity
       camYaw.current -= input.mouseX * sens
       camPitch.current += (settings.invertY ? -1 : 1) * input.mouseY * sens * 0.8
