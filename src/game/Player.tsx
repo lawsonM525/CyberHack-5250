@@ -1,0 +1,210 @@
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
+import type { MotionState } from './Character'
+import { HeroBody } from './Heroine'
+import { getLook } from '../content/presets'
+import { INTERACTABLES, cameraBlocked, resolveMove, WALKABLE } from './world'
+import { useGame } from '../state/store'
+import { audio } from '../audio/audio'
+import { isPointerLocked, readInput } from './input'
+
+const WALK = 2.05
+const RUN = 4.1
+const ACCEL = 14
+const HEAD = 1.12
+const DIST = 3.05
+const MIN_DIST = 0.85
+
+export function Player({
+  active,
+  onFocus,
+}: {
+  active: boolean
+  onFocus: (id: string | null) => void
+}) {
+  const lookId = useGame((s) => s.look)
+  const stage = useGame((s) => s.stage)
+  const respawn = useGame((s) => s.respawn)
+  const settings = useGame((s) => s.settings)
+  const look = useMemo(() => getLook(lookId), [lookId])
+  const bridgeOpen = stage === 'unlocked' || stage === 'crossed'
+
+  const root = useRef<THREE.Group>(null)
+  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 0 })
+  const pos = useRef(new THREE.Vector2(respawn.at[0], respawn.at[1]))
+  const vel = useRef(new THREE.Vector2())
+  const bodyYaw = useRef(respawn.facing)
+  const camYaw = useRef(respawn.facing)
+  const camPitch = useRef(0.13)
+  const camPos = useRef(new THREE.Vector3())
+  const stepDist = useRef(0)
+  const focusRef = useRef<string | null>(null)
+  const saveTimer = useRef(0)
+  const camInit = useRef(false)
+  const { camera } = useThree()
+
+  useEffect(() => {
+    pos.current.set(respawn.at[0], respawn.at[1])
+    vel.current.set(0, 0)
+    bodyYaw.current = respawn.facing
+    camYaw.current = respawn.facing
+    camPitch.current = 0.13
+    camInit.current = false
+  }, [respawn])
+
+  useFrame((_, rawDelta) => {
+    const delta = Math.min(rawDelta, 0.1)
+    const input = readInput()
+
+    if (active) {
+      const sens = 0.0022 * settings.sensitivity
+      camYaw.current -= input.mouseX * sens
+      camPitch.current += (settings.invertY ? -1 : 1) * input.mouseY * sens * 0.8
+      camPitch.current = THREE.MathUtils.clamp(camPitch.current, -0.42, 0.72)
+      if (input.recenter) camYaw.current = bodyYaw.current
+    }
+
+    // camera-relative desired velocity
+    const f = active ? input.forward : 0
+    const s = active ? input.strafe : 0
+    const mag = Math.min(1, Math.hypot(f, s))
+    const speed = (input.run && active ? RUN : WALK) * mag
+    let dx = 0
+    let dz = 0
+    if (mag > 0.01) {
+      const sinY = Math.sin(camYaw.current)
+      const cosY = Math.cos(camYaw.current)
+      // forward is -Z rotated by camera yaw
+      const fx = -sinY
+      const fz = -cosY
+      const rx = cosY
+      const rz = -sinY
+      const nx = (fx * f + rx * s) / Math.hypot(f, s)
+      const nz = (fz * f + rz * s) / Math.hypot(f, s)
+      dx = nx * speed
+      dz = nz * speed
+    }
+    vel.current.x += (dx - vel.current.x) * Math.min(1, ACCEL * delta)
+    vel.current.y += (dz - vel.current.y) * Math.min(1, ACCEL * delta)
+    if (vel.current.lengthSq() < 0.0004) vel.current.set(0, 0)
+
+    const [nxp, nzp] = resolveMove(
+      pos.current.x,
+      pos.current.y,
+      pos.current.x + vel.current.x * delta,
+      pos.current.y + vel.current.y * delta,
+      bridgeOpen,
+    )
+    const moved = Math.hypot(nxp - pos.current.x, nzp - pos.current.y)
+    pos.current.set(nxp, nzp)
+
+    const actualSpeed = delta > 0 ? moved / delta : 0
+    if (actualSpeed > 0.15) {
+      const targetYaw = Math.atan2(vel.current.x, vel.current.y) + Math.PI
+      let diff = targetYaw - bodyYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      bodyYaw.current += diff * Math.min(1, delta * 11)
+      motion.current.turning = diff
+      motion.current.still = 0
+    } else {
+      motion.current.turning = 0
+      motion.current.still += delta
+    }
+    const gait = THREE.MathUtils.clamp(actualSpeed / WALK, 0, 2)
+    motion.current.gait += (gait - motion.current.gait) * Math.min(1, delta * 12)
+
+    // footsteps
+    stepDist.current += moved
+    const stride = actualSpeed > WALK * 1.25 ? 0.78 : 0.62
+    if (stepDist.current > stride && actualSpeed > 0.4) {
+      stepDist.current = 0
+      audio.footstep(actualSpeed > WALK * 1.25)
+    }
+
+    if (root.current) {
+      root.current.position.set(pos.current.x, 0, pos.current.y)
+      root.current.rotation.y = bodyYaw.current
+    }
+
+    // third person camera with wall-aware distance
+    const pivot = new THREE.Vector3(pos.current.x, HEAD, pos.current.y)
+    const dirX = Math.sin(camYaw.current) * Math.cos(camPitch.current)
+    const dirZ = Math.cos(camYaw.current) * Math.cos(camPitch.current)
+    const dirY = Math.sin(camPitch.current)
+    let dist = DIST
+    for (let i = 4; i >= 1; i--) {
+      const d = (DIST * i) / 4
+      if (!cameraBlocked(pivot.x + dirX * d, pivot.z + dirZ * d)) {
+        dist = d
+        break
+      }
+      dist = MIN_DIST
+    }
+    const desired = new THREE.Vector3(
+      pivot.x + dirX * dist,
+      Math.max(0.35, pivot.y + dirY * dist + 0.35),
+      pivot.z + dirZ * dist,
+    )
+    if (!camInit.current) {
+      camPos.current.copy(desired)
+      camInit.current = true
+    } else {
+      camPos.current.lerp(desired, Math.min(1, delta * 9))
+    }
+    camera.position.copy(camPos.current)
+    camera.lookAt(pivot.x, HEAD + 0.12, pivot.z)
+
+    // nearest interactable
+    let best: string | null = null
+    let bestScore = Infinity
+    for (const it of INTERACTABLES) {
+      const d = Math.hypot(it.at[0] - pos.current.x, it.at[2] - pos.current.y)
+      if (d > it.radius) continue
+      // prefer what she is facing
+      const ang = Math.atan2(it.at[0] - pos.current.x, it.at[2] - pos.current.y) + Math.PI
+      let diff = Math.abs(((ang - bodyYaw.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
+      diff = Math.min(diff, Math.PI)
+      const score = d + diff * 0.55
+      if (score < bestScore) {
+        bestScore = score
+        best = it.id
+      }
+    }
+    if (best !== focusRef.current) {
+      focusRef.current = best
+      onFocus(best)
+    }
+
+    // reaching the far balcony completes the mission
+    if (bridgeOpen && pos.current.y < WALKABLE.far.z1 - 0.15 && useGame.getState().stage === 'unlocked') {
+      useGame.getState().cross()
+    }
+
+    saveTimer.current += delta
+    if (saveTimer.current > 1.2) {
+      saveTimer.current = 0
+      useGame.getState().savePosition([pos.current.x, pos.current.y], bodyYaw.current)
+    }
+  })
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const st = useGame.getState()
+      st.savePosition([pos.current.x, pos.current.y], bodyYaw.current)
+    }, 2000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  return (
+    <group ref={root}>
+      <HeroBody look={look} motion={motion} reducedMotion={settings.reducedMotion} />
+      <pointLight position={[0, 1.4, 0.35]} color="#ffd9b0" intensity={0.35} distance={2.6} decay={2} />
+    </group>
+  )
+}
+
+export function usePointerLockHint(): boolean {
+  return isPointerLocked()
+}
