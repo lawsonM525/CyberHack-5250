@@ -611,6 +611,51 @@ export function Kitchenette() {
   )
 }
 
+/**
+ * Sugarloaf's service hatch cut into the east wall above the counter, plus
+ * whatever she has actually bought tonight sitting on the worktop.
+ */
+export function NightHatch() {
+  const pantry = useGame((s) => s.pantry)
+  const low = useLowQuality()
+  return (
+    <group>
+      <group position={[5.94, 1.62, 2.9]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[1.1, 0.72, 0.06]} />
+          <meshStandardMaterial color="#2a1c18" roughness={0.75} />
+        </mesh>
+        <mesh position={[0, 0, 0.04]}>
+          <planeGeometry args={[0.96, 0.58]} />
+          <meshStandardMaterial
+            color="#ffbf74"
+            emissive="#ff9e4a"
+            emissiveIntensity={1.5}
+            roughness={0.9}
+          />
+        </mesh>
+        <mesh position={[0, 0.47, 0.02]}>
+          <boxGeometry args={[0.84, 0.14, 0.04]} />
+          <meshStandardMaterial color="#ff8bbd" emissive="#ff5fa2" emissiveIntensity={1.7} roughness={0.5} />
+        </mesh>
+        {!low && <pointLight position={[0, 0, 0.5]} color="#ffb877" intensity={5} distance={4} decay={2} />}
+      </group>
+      {pantry.slice(0, 4).map((id, i) => (
+        <mesh key={`${id}-${i}`} castShadow position={[5.5 - (i % 2) * 0.22, 1.0, 2.5 + Math.floor(i / 2) * 0.3]} rotation={[Math.PI / 2, 0, i * 0.5]}>
+          <capsuleGeometry args={[0.07, 0.16, 4, 10]} />
+          <meshStandardMaterial color={LOAF_COLORS[id] ?? '#dcb684'} roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+const LOAF_COLORS: Record<string, string> = {
+  'milk-bread': '#e8c08a',
+  'cardamom-bun': '#c98a4b',
+  'olive-loaf': '#a86b3c',
+}
+
 export function CeilingFan({ reducedMotion }: { reducedMotion: boolean }) {
   const low = useLowQuality()
   const blades = useRef<THREE.Group>(null)

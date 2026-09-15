@@ -6,6 +6,8 @@ import { useGame, persist, type Settings } from '../state/store'
 import { useUi } from '../state/ui'
 import { LOOKS, getLook } from '../content/presets'
 import { getInspectable } from '../content/inspectables'
+import { BAKERY } from '../content/bakery'
+import { BEATS } from '../content/friends'
 import { INTERACTABLES } from '../game/world'
 import { installInput, setInputEnabled } from '../game/input'
 import { audio } from '../audio/audio'
@@ -41,6 +43,9 @@ export function App() {
     const id = window.setInterval(persist, 5000)
     return () => window.clearInterval(id)
   }, [])
+
+  useNotifSounds()
+  useFriendTexts()
 
   // story beats
   useEffect(() => {
@@ -95,7 +100,158 @@ function Playing({
       {overlay === 'computer' && <ComputerOverlay />}
       {overlay === 'inspect' && <InspectOverlay />}
       {overlay === 'pause' && <PauseMenu />}
+      {overlay === 'bakery' && <BakeryOverlay />}
       {overlay === 'complete' && <Finale />}
+    </div>
+  )
+}
+
+// ----------------------------------------------------- notifications & life
+
+/** Each card announces itself once, with the sound that belongs to its kind. */
+function useNotifSounds() {
+  const notifs = useGame((s) => s.notifs)
+  const played = useRef(new Set<number>())
+  useEffect(() => {
+    for (const n of notifs) {
+      if (played.current.has(n.id)) continue
+      played.current.add(n.id)
+      if (n.kind === 'text' && n.tone) audio.ping(n.tone)
+      else if (n.kind === 'credit') audio.coin()
+      else if (n.kind === 'treat') audio.bakery()
+      else audio.notify()
+    }
+  }, [notifs])
+}
+
+const FIRST_TEXT_DELAY = 42000
+const TEXT_GAP = 78000
+const TEXT_JITTER = 34000
+/** Retry window used when she is mid-overlay, so a clue is never interrupted. */
+const TEXT_RETRY = 9000
+
+/** Friends text between missions, spaced out and never over an open panel. */
+function useFriendTexts() {
+  const phase = useGame((s) => s.phase)
+  useEffect(() => {
+    if (phase !== 'playing') return undefined
+    let timer = window.setTimeout(tick, FIRST_TEXT_DELAY)
+    function tick() {
+      const state = useGame.getState()
+      const next = BEATS.find((b) => !state.delivered.includes(b.id))
+      if (!next) return
+      if (state.overlay !== null) {
+        timer = window.setTimeout(tick, TEXT_RETRY)
+        return
+      }
+      state.deliverBeat(next.id)
+      timer = window.setTimeout(tick, TEXT_GAP + Math.random() * TEXT_JITTER)
+    }
+    return () => window.clearTimeout(timer)
+  }, [phase])
+}
+
+function NotifStack() {
+  const notifs = useGame((s) => s.notifs)
+  const dismiss = useGame((s) => s.dismissNotif)
+  const setOverlay = useGame((s) => s.setOverlay)
+
+  useEffect(() => {
+    if (notifs.length === 0) return undefined
+    const timers = notifs.map((n) => window.setTimeout(() => dismiss(n.id), 7000))
+    return () => timers.forEach((t) => window.clearTimeout(t))
+  }, [notifs, dismiss])
+
+  return (
+    <div className="notifs">
+      {notifs.map((n) => (
+        <button
+          key={n.id}
+          className={`notif ${n.kind}`}
+          style={{ '--accent': n.accent } as React.CSSProperties}
+          onClick={() => {
+            dismiss(n.id)
+            if (n.kind === 'text') {
+              document.exitPointerLock?.()
+              setOverlay('computer')
+            }
+          }}
+        >
+          <span className="dot" />
+          <span className="body">
+            <b>{n.title}</b>
+            <span>{n.body}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Wallet() {
+  const credits = useGame((s) => s.credits)
+  const pantry = useGame((s) => s.pantry)
+  const [bump, setBump] = useState(false)
+  const prev = useRef(credits)
+  useEffect(() => {
+    if (credits === prev.current) return undefined
+    prev.current = credits
+    setBump(true)
+    const t = window.setTimeout(() => setBump(false), 520)
+    return () => window.clearTimeout(t)
+  }, [credits])
+  return (
+    <div className={`wallet ${bump ? 'bump' : ''}`}>
+      <span className="coin">¢</span>
+      {credits}
+      {pantry.length > 0 && <span className="pantry" title={`${pantry.length} from the bakery`}>🥖 {pantry.length}</span>}
+    </div>
+  )
+}
+
+function BakeryOverlay() {
+  const credits = useGame((s) => s.credits)
+  const pantry = useGame((s) => s.pantry)
+  const buyBread = useGame((s) => s.buyBread)
+  const closeOverlay = useGame((s) => s.closeOverlay)
+  return (
+    <div className="overlay" onClick={closeOverlay}>
+      <div className="panel bakery" onClick={(e) => e.stopPropagation()}>
+        <div className="kicker">Sugarloaf · night hatch · 12F</div>
+        <h3>Still baking at this hour</h3>
+        <p className="sub">
+          Tap the hatch, it comes up warm. Balance <b>¢{credits}</b>.
+        </p>
+        <div className="shelf">
+          {BAKERY.map((b) => {
+            const bought = pantry.filter((p) => p === b.id).length
+            const afford = credits >= b.price
+            return (
+              <div key={b.id} className="loaf-row">
+                <span className="loaf-swatch" style={{ background: b.color }} />
+                <span className="loaf-meta">
+                  <b>{b.name}</b>
+                  <span>{b.blurb}</span>
+                </span>
+                <button
+                  className={`btn ${afford ? 'primary' : 'ghost'} small`}
+                  disabled={!afford}
+                  onClick={() => buyBread(b.id)}
+                >
+                  ¢{b.price}
+                </button>
+                {bought > 0 && <span className="owned">×{bought}</span>}
+              </div>
+            )
+          })}
+        </div>
+        <div className="foot">
+          <span>fictional credits · no real money anywhere in this game</span>
+          <button className="btn ghost small" onClick={closeOverlay}>
+            Esc — back
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -259,8 +415,6 @@ function LookSelect() {
 
 function Hud() {
   const objective = useGame((s) => s.objective)
-  const toast = useGame((s) => s.toast)
-  const clearToast = useGame((s) => s.clearToast)
   const setOverlay = useGame((s) => s.setOverlay)
   const openInspect = useGame((s) => s.openInspect)
   const overlay = useGame((s) => s.overlay)
@@ -277,12 +431,6 @@ function Hud() {
     return () => window.clearTimeout(t)
   }, [])
 
-  useEffect(() => {
-    if (!toast) return
-    const t = window.setTimeout(clearToast, 6000)
-    return () => window.clearTimeout(t)
-  }, [toast, clearToast])
-
   const interact = useCallback(() => {
     const id = focusRef.current
     if (!id) return
@@ -298,6 +446,11 @@ function Hud() {
       } else {
         state.pushToast('Kingsley Row', 'The bell rings somewhere deep in the flat. Orchid is taking her time.')
       }
+      return
+    }
+    if (entry.kind === 'bakery') {
+      document.exitPointerLock?.()
+      setOverlay('bakery')
       return
     }
     if (entry.kind === 'computer') {
@@ -387,12 +540,8 @@ function Hud() {
 
       <div className="fps">{fps ? `${fps} fps` : ''}</div>
 
-      {toast && (
-        <div className="toast">
-          <b>{toast.title}</b>
-          {toast.body}
-        </div>
-      )}
+      <Wallet />
+      <NotifStack />
     </div>
   )
 }

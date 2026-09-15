@@ -4,7 +4,7 @@ import { ROOM, DOORWAY } from './world'
 import { plasterTexture, woodTexture } from './textures'
 import { artPlate, posterPlate, rugPlate } from './assets'
 import { Fern, HangingVine, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
-import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, RecordConsole, Speaker, Vanity } from './furniture'
+import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, NightHatch, RecordConsole, Speaker, Vanity } from './furniture'
 import { Curtains, HangingBasket, MushroomLamp, Pouf, SideTable, Wardrobe, WindowSeat } from './cozy'
 import type { MissionStage } from '../state/store'
 import { useLowQuality } from './quality'
@@ -281,6 +281,7 @@ export function Apartment({
       <RecordConsole />
       <Speaker />
       <Kitchenette />
+      <NightHatch />
       <CeilingFan reducedMotion={reducedMotion} />
     </group>
   )

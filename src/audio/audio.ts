@@ -21,6 +21,26 @@ const ARP_SCALE = [69, 72, 76, 79, 81, 84]
 
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12)
 
+export type PingTone = 'bloop' | 'bubble' | 'marimba' | 'chirp' | 'purr'
+
+interface PingVoice {
+  wave: OscillatorType
+  notes: number[]
+  gap: number
+  decay: number
+  level: number
+  /** Semitones the pitch slides by over the tail. */
+  bend?: number
+}
+
+const PING_TONES: Record<PingTone, PingVoice> = {
+  bloop: { wave: 'sine', notes: [76, 83], gap: 0.1, decay: 0.42, level: 0.12, bend: 2 },
+  bubble: { wave: 'triangle', notes: [88, 81, 88], gap: 0.075, decay: 0.28, level: 0.1 },
+  marimba: { wave: 'triangle', notes: [72, 79, 84], gap: 0.09, decay: 0.55, level: 0.09 },
+  chirp: { wave: 'square', notes: [93, 96], gap: 0.06, decay: 0.16, level: 0.05, bend: 5 },
+  purr: { wave: 'sine', notes: [64, 71], gap: 0.16, decay: 0.9, level: 0.11, bend: -1 },
+}
+
 function noiseBuffer(ctx: AudioContext, seconds: number, brown = false): AudioBuffer {
   const len = Math.floor(ctx.sampleRate * seconds)
   const buf = ctx.createBuffer(1, len, ctx.sampleRate)
@@ -516,6 +536,81 @@ export class AudioEngine {
       o.start(t + d)
       o.stop(t + d + 0.9)
     })
+  }
+
+  /**
+   * One short signature per friend, so she knows who texted without looking.
+   * Each is a different waveform, interval and swing on the same little motif.
+   */
+  ping(tone: PingTone): void {
+    const ctx = this.ctx
+    if (!ctx || !this.started) return
+    const t = ctx.currentTime
+    const v = PING_TONES[tone]
+    v.notes.forEach((n, i) => {
+      const o = ctx.createOscillator()
+      o.type = v.wave
+      o.frequency.setValueAtTime(mtof(n), t + i * v.gap)
+      if (v.bend) {
+        o.frequency.exponentialRampToValueAtTime(mtof(n + v.bend), t + i * v.gap + v.decay * 0.8)
+      }
+      const g = this.env(o, v.level, 0.006, v.decay, t + i * v.gap)
+      const send = ctx.createGain()
+      send.gain.value = 0.45
+      g.connect(send)
+      send.connect(this.delay)
+      o.start(t + i * v.gap)
+      o.stop(t + i * v.gap + v.decay + 0.3)
+    })
+  }
+
+  /** Credits landing in the wallet. */
+  coin(): void {
+    const ctx = this.ctx
+    if (!ctx || !this.started) return
+    const t = ctx.currentTime
+    ;[84, 91].forEach((n, i) => {
+      const o = ctx.createOscillator()
+      o.type = 'square'
+      o.frequency.value = mtof(n)
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0, t + i * 0.07)
+      g.gain.linearRampToValueAtTime(0.05, t + i * 0.07 + 0.004)
+      g.gain.exponentialRampToValueAtTime(0.0006, t + i * 0.07 + 0.22)
+      o.connect(g)
+      g.connect(this.sfxBus)
+      o.start(t + i * 0.07)
+      o.stop(t + i * 0.07 + 0.3)
+    })
+  }
+
+  /** Paper bag, little counter bell, warm oven air. */
+  bakery(): void {
+    const ctx = this.ctx
+    if (!ctx || !this.started) return
+    const t = ctx.currentTime
+    ;[88, 95].forEach((n, i) => {
+      const o = ctx.createOscillator()
+      o.type = 'sine'
+      o.frequency.value = mtof(n)
+      const g = this.env(o, 0.11, 0.003, 1.3, t + i * 0.1)
+      const send = ctx.createGain()
+      send.gain.value = 0.6
+      g.connect(send)
+      send.connect(this.delay)
+      o.start(t + i * 0.1)
+      o.stop(t + i * 0.1 + 1.6)
+    })
+    const bag = ctx.createBufferSource()
+    bag.buffer = this.noise
+    bag.playbackRate.value = 1.8
+    const f = ctx.createBiquadFilter()
+    f.type = 'highpass'
+    f.frequency.value = 2600
+    bag.connect(f)
+    this.env(f, 0.05, 0.02, 0.25, t + 0.24)
+    bag.start(t + 0.24)
+    bag.stop(t + 0.6)
   }
 
   denied(): void {

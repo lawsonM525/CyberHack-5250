@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ACCESS_CODE, HINTS, MESSAGES, TERMINAL_BANNER } from '../content/mission'
 import { PLANT_CLUES, getInspectable } from '../content/inspectables'
-import { useGame, type TermTheme } from '../state/store'
+import { useGame, GIFT_AMOUNT, type TermTheme } from '../state/store'
+import { BEATS, FRIENDS } from '../content/friends'
 import { audio } from '../audio/audio'
 
-type Tab = 'inbox' | 'access' | 'notes' | 'display'
+type Tab = 'inbox' | 'access' | 'notes' | 'chats' | 'display'
 
 const THEMES: { id: TermTheme; name: string; blurb: string }[] = [
   { id: 'amber', name: 'Amber CRT', blurb: 'the factory phosphor. warm, slightly tired.' },
@@ -28,6 +29,8 @@ export function Terminal({ onClose }: { onClose: () => void }) {
   const bumpAttempts = useGame((s) => s.bumpAttempts)
   const theme = useGame((s) => s.settings.termTheme)
   const setSettings = useGame((s) => s.setSettings)
+  const unreadChats = useGame((s) => s.unreadChats)
+  const markChatsRead = useGame((s) => s.markChatsRead)
 
   const [tab, setTab] = useState<Tab>(stage === 'arrived' ? 'inbox' : 'access')
   const [code, setCode] = useState('')
@@ -116,6 +119,17 @@ export function Terminal({ onClose }: { onClose: () => void }) {
         </button>
         <button className={`tab ${tab === 'notes' ? 'on' : ''}`} onClick={() => { setTab('notes'); audio.uiTick() }}>
           Notes
+        </button>
+        <button
+          className={`tab ${tab === 'chats' ? 'on' : ''}`}
+          onClick={() => {
+            setTab('chats')
+            audio.uiTick()
+            markChatsRead()
+          }}
+        >
+          Chats
+          {unreadChats > 0 && <span className="dot" style={{ background: '#ff8fbf', boxShadow: '0 0 10px #ff8fbf' }} />}
         </button>
         <button className={`tab ${tab === 'display' ? 'on' : ''}`} onClick={() => { setTab('display'); audio.uiTick() }}>
           Display
@@ -239,6 +253,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         )}
+        {tab === 'chats' && <Chats />}
         {tab === 'display' && (
           <div>
             <p style={{ color: '#8b9bab', marginTop: 0 }}>
@@ -264,6 +279,83 @@ export function Terminal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Her friends. Threads, two canned replies per text, and gifting credits. */
+function Chats() {
+  const chats = useGame((s) => s.chats)
+  const credits = useGame((s) => s.credits)
+  const gifted = useGame((s) => s.gifted)
+  const sendReply = useGame((s) => s.sendReply)
+  const giftCredits = useGame((s) => s.giftCredits)
+
+  const threads = FRIENDS.map((f) => ({
+    friend: f,
+    lines: chats.filter((c) => c.friend === f.id),
+  })).filter((t) => t.lines.length > 0)
+
+  if (threads.length === 0) {
+    return (
+      <p style={{ color: '#8b9bab', marginTop: 0 }}>
+        No one has texted yet. Give it a minute — they always do.
+      </p>
+    )
+  }
+
+  return (
+    <div className="chats">
+      <p className="chats-bal">
+        Balance <b>¢{credits}</b> · a gift costs ¢{GIFT_AMOUNT} (fictional credits)
+      </p>
+      {threads.map(({ friend, lines }) => {
+        const beat = [...BEATS].reverse().find(
+          (b) => b.friend === friend.id && lines.some((l) => l.id === `${b.id}-them`),
+        )
+        const answered = beat ? lines.some((l) => l.id === `${beat.id}-you`) : true
+        return (
+          <div key={friend.id} className="thread" style={{ borderColor: friend.color }}>
+            <div className="thread-head">
+              <span className="who" style={{ color: friend.color }}>
+                {friend.name}
+              </span>
+              <span className="handle">{friend.handle}</span>
+              <button
+                className="btn ghost small"
+                disabled={gifted.includes(friend.id) || credits < GIFT_AMOUNT}
+                onClick={() => {
+                  giftCredits(friend.id)
+                  audio.uiTick()
+                }}
+              >
+                {gifted.includes(friend.id) ? 'gifted ♡' : `send ¢${GIFT_AMOUNT}`}
+              </button>
+            </div>
+            {lines.map((l) => (
+              <div key={l.id} className={`bubble ${l.from}`}>
+                {l.text}
+              </div>
+            ))}
+            {beat && !answered && (
+              <div className="replies">
+                {beat.replies.map((r, i) => (
+                  <button
+                    key={r.text}
+                    className="btn ghost small"
+                    onClick={() => {
+                      sendReply(beat.id, i)
+                      audio.uiTick()
+                    }}
+                  >
+                    {r.text}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

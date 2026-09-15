@@ -13,7 +13,8 @@ const WALK = 2.05
 const RUN = 4.1
 const ACCEL = 14
 const HEAD = 1.12
-const DIST = 3.05
+/** Close enough that she, not the rug, is the subject of the frame. */
+const DIST = 2.5
 const MIN_DIST = 1.2
 /** Where the boom swings for the arrival reveal: back across the span, over the city. */
 const REVEAL_YAW = Math.PI * 0.92
@@ -39,7 +40,7 @@ export function Player({
   const vel = useRef(new THREE.Vector2())
   const bodyYaw = useRef(respawn.facing)
   const camYaw = useRef(respawn.facing)
-  const camPitch = useRef(0.13)
+  const camPitch = useRef(0.05)
   const camPos = useRef(new THREE.Vector3())
   const stepDist = useRef(0)
   const focusRef = useRef<string | null>(null)
@@ -59,7 +60,7 @@ export function Player({
     vel.current.set(0, 0)
     bodyYaw.current = respawn.facing
     camYaw.current = respawn.facing
-    camPitch.current = 0.13
+    camPitch.current = 0.05
     camInit.current = false
     drainMouse()
     // a prompt from wherever she was standing before must not survive the teleport
@@ -174,11 +175,16 @@ export function Player({
     // the shorter the boom gets, the higher it rides and the lower it aims, so a
     // wall behind her crops the frame instead of her
     const pinch = 1 - THREE.MathUtils.clamp((dist - 0.6) / (DIST - 0.6), 0, 1)
-    const desired = new THREE.Vector3(
-      pivot.x + dirX * dist,
-      Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
-      pivot.z + dirZ * dist,
-    )
+    // standing in a doorway or against a pier, every direction is blocked and a
+    // shoulder boom just buries the lens in plaster: look down over the wall
+    const boxedIn = cameraBlocked(pivot.x, pivot.z)
+    const desired = boxedIn
+      ? new THREE.Vector3(pivot.x + dirX * 1.05, pivot.y + 1.55, pivot.z + dirZ * 1.05)
+      : new THREE.Vector3(
+          pivot.x + dirX * dist,
+          Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
+          pivot.z + dirZ * dist,
+        )
     if (!camInit.current) {
       camPos.current.copy(desired)
       camInit.current = true
@@ -186,7 +192,7 @@ export function Player({
       camPos.current.lerp(desired, Math.min(1, delta * 9))
     }
     camera.position.copy(camPos.current)
-    camera.lookAt(pivot.x, HEAD + 0.12 - pinch * 0.75, pivot.z)
+    camera.lookAt(pivot.x, boxedIn ? 0.75 : HEAD + 0.12 - pinch * 0.75, pivot.z)
 
     // nearest interactable
     let best: string | null = null

@@ -48,6 +48,8 @@ export const BLOCKERS: Rect[] = [
   rect(2.18, -3.72, 2.82, -3.08), // window palm pot
   rect(1.75, -6.65, 3.0, -6.45), // balcony railing (outer, west of the gate)
   rect(4.2, -6.65, 5.05, -6.45), // balcony railing (outer, east of the gate)
+  rect(1.7, -4.78, 2.6, -4.5), // north wall pier, west of the balcony door
+  rect(4.4, -4.78, 5.15, -4.5), // north wall pier, east of the balcony door
   rect(1.75, -6.65, 1.95, -4.55), // balcony railing (west)
   rect(4.85, -6.65, 5.05, -4.55), // balcony railing (east)
 ]
@@ -113,8 +115,8 @@ export const CAMERA_WALLS: Rect[] = [
   rect(ROOM.x0 - 12, ROOM.z0 - 0.3, ROOM.x0, ROOM.z1 + 24), // west
   rect(ROOM.x1, ROOM.z0 - 0.3, ROOM.x1 + 12, ROOM.z1 + 24), // east
   rect(ROOM.x0 - 12, -6.4, 1.7, ROOM.z0), // north, window side and the air outside it
-  rect(1.7, ROOM.z0 - 0.45, DOORWAY.x0, ROOM.z0), // north, beside the balcony
-  rect(DOORWAY.x1, ROOM.z0 - 0.45, 5.15, ROOM.z0), // north, balcony-side pier
+  rect(1.7, ROOM.z0 - 0.28, DOORWAY.x0, ROOM.z0), // north, beside the balcony
+  rect(DOORWAY.x1, ROOM.z0 - 0.28, 5.15, ROOM.z0), // north, balcony-side pier
   rect(5.15, -6.4, ROOM.x1 + 12, ROOM.z0), // north, east of the balcony
   rect(-10, -30, 14, -18.7), // Kingsley Row facade and balcony recess wall
 ]
@@ -146,7 +148,7 @@ export function cameraBlocked(x: number, z: number): boolean {
   return false
 }
 
-export type InteractKind = 'computer' | 'inspect' | 'mirror' | 'doorbell'
+export type InteractKind = 'computer' | 'inspect' | 'mirror' | 'doorbell' | 'bakery'
 
 export interface Interactable {
   id: string
@@ -169,6 +171,7 @@ export const INTERACTABLES: Interactable[] = [
   { id: 'photo', kind: 'inspect', label: 'Framed photograph', at: [1.0, 1.55, 3.85], radius: 1.0 },
   { id: 'books', kind: 'inspect', label: 'Stack of books', at: [2.3, 1.15, 3.85], radius: 1.0 },
   { id: 'vanity', kind: 'mirror', label: 'Check yourself out', at: [5.2, 1.2, 0.1], radius: 1.2 },
+  { id: 'bakery', kind: 'bakery', label: 'Sugarloaf night hatch', at: [5.45, 1.15, 2.9], radius: 1.35 },
   { id: 'window', kind: 'inspect', label: 'Look out the window', at: [-0.1, 1.5, -4.3], radius: 1.1 },
   { id: 'doorbell', kind: 'doorbell', label: 'Ring the bell', at: [4.48, 1.17, -18.6], radius: 1.5 },
 ]

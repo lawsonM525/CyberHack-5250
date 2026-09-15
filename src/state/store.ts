@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { DEFAULT_LOOK, type LookId, LOOKS } from '../content/presets'
+import { BEATS, getFriend } from '../content/friends'
+import { getBakeryItem } from '../content/bakery'
+import type { PingTone } from '../audio/audio'
 
 export type Phase =
   | 'title'
@@ -12,7 +15,33 @@ export type MissionStage =
   | 'unlocked'
   | 'crossed'
 
-export type Overlay = null | 'computer' | 'inspect' | 'pause' | 'complete'
+export type Overlay = null | 'computer' | 'inspect' | 'pause' | 'complete' | 'bakery'
+
+export interface ChatLine {
+  id: string
+  friend: string
+  from: 'them' | 'you'
+  text: string
+}
+
+export interface Notif {
+  id: number
+  title: string
+  body: string
+  accent: string
+  kind: 'story' | 'text' | 'credit' | 'treat'
+  /** Signature sound, so each friend is recognisable without looking. */
+  tone?: PingTone
+}
+
+let nextNotifId = 1
+
+export const GIFT_AMOUNT = 25
+/** Fictional credits. Nothing here touches real money. */
+export const RETAINER = 60
+export const CLUE_BOUNTY = 25
+export const PANEL_BOUNTY = 250
+export const CROSSING_BOUNTY = 400
 
 export type TermTheme = 'amber' | 'green' | 'magenta' | 'ice'
 
@@ -36,6 +65,12 @@ export interface SaveShape {
   position: [number, number]
   facing: number
   settings: Settings
+  /** Added after the first release; older saves simply start empty. */
+  credits?: number
+  chats?: ChatLine[]
+  delivered?: string[]
+  gifted?: string[]
+  pantry?: string[]
 }
 
 const SAVE_KEY = 'cyberhack5250.save.v1'
@@ -64,8 +99,16 @@ interface GameState {
   hintsUsed: number
   /** Objective line shown in the HUD. */
   objective: string
-  toast: { id: number; title: string; body: string } | null
+  notifs: Notif[]
   hasSave: boolean
+  credits: number
+  chats: ChatLine[]
+  /** Beat ids already delivered this run. */
+  delivered: string[]
+  unreadChats: number
+  gifted: string[]
+  /** Bakery items bought this run. */
+  pantry: string[]
   /** Bumped to command the player controller to teleport (load / reset). */
   respawn: { at: [number, number]; facing: number; nonce: number }
   bridgeDeployedAt: number | null
@@ -86,7 +129,14 @@ interface GameState {
   useHint: () => void
   bumpAttempts: () => void
   pushToast: (title: string, body: string) => void
-  clearToast: () => void
+  notify: (n: Omit<Notif, 'id'>) => void
+  dismissNotif: (id: number) => void
+  earn: (amount: number, reason: string) => void
+  deliverBeat: (beatId: string) => void
+  markChatsRead: () => void
+  sendReply: (beatId: string, replyIndex: number) => void
+  giftCredits: (friendId: string) => void
+  buyBread: (itemId: string) => void
   setSettings: (patch: Partial<Settings>) => void
   settings: Settings
   savePosition: (pos: [number, number], facing: number) => void
@@ -120,10 +170,26 @@ function readSave(): SaveShape | null {
       position,
       facing: typeof s.facing === 'number' && Number.isFinite(s.facing) ? s.facing : 0,
       settings: { ...DEFAULT_SETTINGS, ...(typeof s.settings === 'object' && s.settings ? s.settings : {}) },
+      credits: typeof s.credits === 'number' && s.credits >= 0 ? Math.floor(s.credits) : 0,
+      chats: Array.isArray(s.chats) ? s.chats.filter(isChatLine) : [],
+      delivered: strings(s.delivered),
+      gifted: strings(s.gifted),
+      pantry: strings(s.pantry),
     }
   } catch {
     return null
   }
+}
+
+function strings(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((i): i is string => typeof i === 'string') : []
+}
+
+function isChatLine(v: unknown): v is ChatLine {
+  if (!v || typeof v !== 'object') return false
+  const c = v as Partial<ChatLine>
+  return typeof c.id === 'string' && typeof c.friend === 'string' && typeof c.text === 'string' &&
+    (c.from === 'them' || c.from === 'you')
 }
 
 const booted = readSave()
@@ -150,8 +216,14 @@ export const useGame = create<GameState>((set, get) => ({
   inspectingId: null,
   hintsUsed: 0,
   objective: objectiveFor('arrived'),
-  toast: null,
+  notifs: [],
   hasSave: booted !== null,
+  credits: 0,
+  chats: [],
+  delivered: [],
+  unreadChats: 0,
+  gifted: [],
+  pantry: [],
   respawn: { at: SPAWN, facing: 0, nonce: 0 },
   bridgeDeployedAt: null,
   codeAttempts: 0,
@@ -174,6 +246,13 @@ export const useGame = create<GameState>((set, get) => ({
       codeAttempts: 0,
       bridgeDeployedAt: null,
       objective: objectiveFor('arrived'),
+      credits: 0,
+      chats: [],
+      delivered: [],
+      unreadChats: 0,
+      gifted: [],
+      pantry: [],
+      notifs: [],
       respawn: { at: SPAWN, facing: 0, nonce: s.respawn.nonce + 1 },
     })),
 
@@ -192,6 +271,13 @@ export const useGame = create<GameState>((set, get) => ({
       hintsUsed: save.hintsUsed,
       settings: save.settings,
       objective: objectiveFor(save.stage),
+      credits: save.credits ?? 0,
+      chats: save.chats ?? [],
+      delivered: save.delivered ?? [],
+      unreadChats: 0,
+      gifted: save.gifted ?? [],
+      pantry: save.pantry ?? [],
+      notifs: [],
       bridgeDeployedAt: save.stage === 'unlocked' || save.stage === 'crossed' ? -1 : null,
       respawn: { at: save.position, facing: save.facing, nonce: s.respawn.nonce + 1 },
     }))
@@ -213,48 +299,154 @@ export const useGame = create<GameState>((set, get) => ({
       codeAttempts: 0,
       bridgeDeployedAt: null,
       objective: objectiveFor('arrived'),
+      credits: 0,
+      chats: [],
+      delivered: [],
+      unreadChats: 0,
+      gifted: [],
+      pantry: [],
+      notifs: [],
       respawn: { at: SPAWN, facing: 0, nonce: s.respawn.nonce + 1 },
     }))
   },
 
-  openInspect: (id) =>
+  openInspect: (id) => {
+    const fresh = !get().inspected.includes(id)
     set((s) => ({
       overlay: 'inspect',
       inspectingId: id,
-      inspected: s.inspected.includes(id) ? s.inspected : [...s.inspected, id],
-    })),
+      inspected: fresh ? [...s.inspected, id] : s.inspected,
+    }))
+    if (fresh && id.startsWith('plant-')) get().earn(CLUE_BOUNTY, 'tag logged')
+  },
 
   closeOverlay: () => set({ overlay: null, inspectingId: null }),
 
-  brief: () =>
-    set((s) =>
-      s.stage === 'arrived' ? { stage: 'briefed', objective: objectiveFor('briefed') } : {},
-    ),
+  brief: () => {
+    if (get().stage !== 'arrived') return
+    set({ stage: 'briefed', objective: objectiveFor('briefed') })
+    get().earn(RETAINER, 'Orchid sent your retainer')
+  },
 
-  unlock: () =>
-    set((s) =>
-      s.stage === 'briefed' || s.stage === 'arrived'
-        ? {
-            stage: 'unlocked',
-            objective: objectiveFor('unlocked'),
-            bridgeDeployedAt: performance.now(),
-            cityGlitch: s.cityGlitch + 1,
-          }
-        : {},
-    ),
+  unlock: () => {
+    const s = get()
+    if (s.stage !== 'briefed' && s.stage !== 'arrived') return
+    set({
+      stage: 'unlocked',
+      objective: objectiveFor('unlocked'),
+      bridgeDeployedAt: performance.now(),
+      cityGlitch: s.cityGlitch + 1,
+    })
+    get().earn(PANEL_BOUNTY, 'panel thinned — bounty cleared')
+  },
 
-  cross: () =>
-    set((s) =>
-      s.stage === 'unlocked'
-        ? { stage: 'crossed', objective: objectiveFor('crossed'), overlay: 'complete' }
-        : {},
-    ),
+  cross: () => {
+    if (get().stage !== 'unlocked') return
+    set({ stage: 'crossed', objective: objectiveFor('crossed'), overlay: 'complete' })
+    get().earn(CROSSING_BOUNTY, 'delivery confirmed at Kingsley Row')
+  },
 
   useHint: () => set((s) => ({ hintsUsed: Math.min(s.hintsUsed + 1, 4) })),
   bumpAttempts: () => set((s) => ({ codeAttempts: s.codeAttempts + 1 })),
 
-  pushToast: (title, body) => set({ toast: { id: Date.now(), title, body } }),
-  clearToast: () => set({ toast: null }),
+  pushToast: (title, body) => get().notify({ title, body, accent: '#ffb877', kind: 'story' }),
+
+  notify: (n) =>
+    set((s) => ({ notifs: [...s.notifs, { ...n, id: nextNotifId++ }].slice(-3) })),
+
+  dismissNotif: (id) => set((s) => ({ notifs: s.notifs.filter((n) => n.id !== id) })),
+
+  earn: (amount, reason) => {
+    set((s) => ({ credits: s.credits + amount }))
+    get().notify({
+      title: `+${amount} \u00a2r`,
+      body: reason,
+      accent: '#ffd07a',
+      kind: 'credit',
+    })
+  },
+
+  deliverBeat: (beatId) => {
+    const beat = BEATS.find((b) => b.id === beatId)
+    if (!beat || get().delivered.includes(beatId)) return
+    const friend = getFriend(beat.friend)
+    set((s) => ({
+      delivered: [...s.delivered, beatId],
+      chats: [...s.chats, { id: `${beatId}-them`, friend: beat.friend, from: 'them', text: beat.text }],
+      unreadChats: s.unreadChats + 1,
+    }))
+    get().notify({
+      title: friend.name,
+      body: beat.text,
+      accent: friend.color,
+      kind: 'text',
+      tone: friend.tone,
+    })
+  },
+
+  markChatsRead: () => set({ unreadChats: 0 }),
+
+  sendReply: (beatId, replyIndex) => {
+    const beat = BEATS.find((b) => b.id === beatId)
+    const reply = beat?.replies[replyIndex]
+    if (!beat || !reply) return
+    if (get().chats.some((c) => c.id === `${beatId}-you`)) return
+    set((s) => ({
+      chats: [...s.chats, { id: `${beatId}-you`, friend: beat.friend, from: 'you', text: reply.text }],
+    }))
+    window.setTimeout(() => {
+      const friend = getFriend(beat.friend)
+      useGame.setState((s) => ({
+        chats: [...s.chats, { id: `${beatId}-back`, friend: beat.friend, from: 'them', text: reply.back }],
+      }))
+      useGame.getState().notify({
+        title: friend.name,
+        body: reply.back,
+        accent: friend.color,
+        kind: 'text',
+        tone: friend.tone,
+      })
+    }, 2600)
+  },
+
+  giftCredits: (friendId) => {
+    const s = get()
+    const friend = getFriend(friendId)
+    if (s.credits < GIFT_AMOUNT || s.gifted.includes(friendId)) return
+    set({
+      credits: s.credits - GIFT_AMOUNT,
+      gifted: [...s.gifted, friendId],
+      chats: [
+        ...s.chats,
+        { id: `gift-${friendId}`, friend: friendId, from: 'you', text: `sent you ${GIFT_AMOUNT} \u00a2r. no reason. love you` },
+      ],
+    })
+    window.setTimeout(() => {
+      useGame.setState((st) => ({
+        chats: [...st.chats, { id: `gift-${friendId}-back`, friend: friendId, from: 'them', text: friend.thanks }],
+      }))
+      useGame.getState().notify({
+        title: friend.name,
+        body: friend.thanks,
+        accent: friend.color,
+        kind: 'text',
+        tone: friend.tone,
+      })
+    }, 2200)
+  },
+
+  buyBread: (itemId) => {
+    const item = getBakeryItem(itemId)
+    const s = get()
+    if (!item || s.credits < item.price) return
+    set({ credits: s.credits - item.price, pantry: [...s.pantry, itemId] })
+    get().notify({
+      title: 'Sugarloaf night hatch',
+      body: `${item.name} — still warm through the bag.`,
+      accent: '#ffcf9a',
+      kind: 'treat',
+    })
+  },
 
   setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
 
@@ -276,6 +468,11 @@ export function persist(): void {
     stage: s.stage,
     inspected: s.inspected,
     hintsUsed: s.hintsUsed,
+    credits: s.credits,
+    chats: s.chats,
+    delivered: s.delivered,
+    gifted: s.gifted,
+    pantry: s.pantry,
     position: s.lastPosition,
     facing: s.lastFacing,
     settings: s.settings,
