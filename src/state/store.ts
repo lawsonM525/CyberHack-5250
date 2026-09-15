@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { DEFAULT_LOOK, type LookId, LOOKS } from '../content/presets'
 import { BEATS, getFriend } from '../content/friends'
 import { getBakeryItem } from '../content/bakery'
-import type { PingTone } from '../audio/audio'
+import type { PingTone, TrackId } from '../audio/audio'
 
 export type Phase =
   | 'title'
@@ -54,6 +54,7 @@ export interface Settings {
   quality: 'low' | 'medium' | 'high'
   invertY: boolean
   sensitivity: number
+  track: TrackId
 }
 
 export interface SaveShape {
@@ -85,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   quality: 'high',
   invertY: false,
   sensitivity: 1,
+  track: 'rhodes',
 }
 
 export const SPAWN: [number, number] = [0.6, 1.3]

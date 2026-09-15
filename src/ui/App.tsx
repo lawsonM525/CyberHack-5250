@@ -10,7 +10,7 @@ import { BAKERY } from '../content/bakery'
 import { BEATS } from '../content/friends'
 import { INTERACTABLES } from '../game/world'
 import { installInput, setInputEnabled } from '../game/input'
-import { audio } from '../audio/audio'
+import { audio, TRACKS } from '../audio/audio'
 import './styles.css'
 
 export function App() {
@@ -30,7 +30,8 @@ export function App() {
     audio.setMusicVolume(settings.music)
     audio.setSfxVolume(settings.sfx)
     audio.setMuted(settings.muted)
-  }, [settings.music, settings.sfx, settings.muted])
+    audio.setTrack(settings.track)
+  }, [settings.music, settings.sfx, settings.muted, settings.track])
 
   // save whenever anything meaningful changes, plus a slow heartbeat for position
   const stage = useGame((s) => s.stage)
@@ -644,6 +645,19 @@ function PauseMenu() {
             value={settings.sfx}
             onChange={(e) => patch({ sfx: Number(e.target.value) })}
           />
+        </Row>
+        <Row label="Track">
+          <div className="tracks">
+            {TRACKS.map((t) => (
+              <button
+                key={t.id}
+                className={`chip ${settings.track === t.id ? 'on' : ''}`}
+                onClick={() => patch({ track: t.id })}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
         </Row>
         <Row label="Mute all">
           <button

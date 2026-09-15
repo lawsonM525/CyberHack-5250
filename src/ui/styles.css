@@ -1339,3 +1339,28 @@ button {
     max-width: 240px;
   }
 }
+
+.tracks {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chip {
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #f4e7d8;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 184, 119, 0.28);
+  cursor: pointer;
+}
+
+.chip.on {
+  background: rgba(255, 158, 74, 0.22);
+  border-color: rgba(255, 158, 74, 0.75);
+  box-shadow: 0 0 14px rgba(255, 158, 74, 0.25);
+}

@@ -58,6 +58,14 @@ function noiseBuffer(ctx: AudioContext, seconds: number, brown = false): AudioBu
   return buf
 }
 
+/** Recorded soul-jazz beds. The synth scheduler below is only a fallback. */
+export const TRACKS = [
+  { id: 'rhodes', name: 'Rhodes, rainy window', file: 'audio/latenight-rhodes.m4a' },
+  { id: 'trio', name: 'Piano trio, 2am', file: 'audio/latenight-trio.m4a' },
+] as const
+
+export type TrackId = (typeof TRACKS)[number]['id']
+
 export class AudioEngine {
   private ctx: AudioContext | null = null
   private master!: GainNode
@@ -77,6 +85,10 @@ export class AudioEngine {
   private musicVol = 0.6
   private sfxVol = 0.8
   private muted = false
+  private trackId: TrackId = 'rhodes'
+  private bed: AudioBufferSourceNode | null = null
+  private bedGain: GainNode | null = null
+  private beds = new Map<TrackId, AudioBuffer>()
 
   get ready(): boolean {
     return this.ctx !== null
@@ -131,7 +143,7 @@ export class AudioEngine {
 
     if (ctx.state === 'suspended') await ctx.resume()
     this.startAmbience()
-    this.startMusic()
+    void this.startMusic()
     this.started = true
   }
 
@@ -157,6 +169,16 @@ export class AudioEngine {
     this.mood = mood
   }
 
+  getTrack(): TrackId {
+    return this.trackId
+  }
+
+  setTrack(id: TrackId): void {
+    if (id === this.trackId) return
+    this.trackId = id
+    if (this.ctx) void this.playBed(id)
+  }
+
   suspend(): void {
     void this.ctx?.suspend()
   }
@@ -168,6 +190,14 @@ export class AudioEngine {
   dispose(): void {
     if (this.timer !== null) window.clearInterval(this.timer)
     this.timer = null
+    try {
+      this.bed?.stop()
+    } catch {
+      /* already stopped */
+    }
+    this.bed = null
+    this.bedGain = null
+    this.beds.clear()
     this.ambienceNodes.forEach((n) => {
       if ('stop' in n && typeof (n as AudioScheduledSourceNode).stop === 'function') {
         try {
@@ -233,7 +263,56 @@ export class AudioEngine {
 
   // ------------------------------------------------------------------ music
 
-  private startMusic(): void {
+  private async startMusic(): Promise<void> {
+    const played = await this.playBed(this.trackId)
+    if (!played) this.startSynthMusic()
+  }
+
+  /** Streams in the recorded loop; false means fall back to the synth bed. */
+  private async playBed(id: TrackId): Promise<boolean> {
+    const ctx = this.ctx
+    if (!ctx) return false
+    let buf = this.beds.get(id)
+    if (!buf) {
+      const track = TRACKS.find((t) => t.id === id)
+      if (!track) return false
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}${track.file}`)
+        if (!res.ok) return false
+        buf = await ctx.decodeAudioData(await res.arrayBuffer())
+        this.beds.set(id, buf)
+      } catch {
+        return false
+      }
+    }
+    if (!this.ctx) return false
+    const now = ctx.currentTime
+    const old = this.bed
+    const oldGain = this.bedGain
+    if (old && oldGain) {
+      oldGain.gain.setTargetAtTime(0, now, 0.4)
+      old.stop(now + 2)
+    }
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(1, now + (old ? 1.6 : 2.4))
+    gain.connect(this.musicBus)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.loop = true
+    src.connect(gain)
+    src.start(now)
+    this.bed = src
+    this.bedGain = gain
+    // the recording carries the groove, so the oscillator bed stays quiet
+    if (this.timer !== null) {
+      window.clearInterval(this.timer)
+      this.timer = null
+    }
+    return true
+  }
+
+  private startSynthMusic(): void {
     const ctx = this.ctx
     if (!ctx || this.timer !== null) return
     this.nextNoteTime = ctx.currentTime + 0.1
