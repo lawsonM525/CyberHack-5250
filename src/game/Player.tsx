@@ -171,9 +171,12 @@ export function Player({
       // pinned against something: hug her shoulder rather than sit in the wall
       dist = 0.6
     }
+    // the shorter the boom gets, the higher it rides and the lower it aims, so a
+    // wall behind her crops the frame instead of her
+    const pinch = 1 - THREE.MathUtils.clamp((dist - 0.6) / (DIST - 0.6), 0, 1)
     const desired = new THREE.Vector3(
       pivot.x + dirX * dist,
-      Math.max(0.35, pivot.y + dirY * dist + 0.35),
+      Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
       pivot.z + dirZ * dist,
     )
     if (!camInit.current) {
@@ -183,7 +186,7 @@ export function Player({
       camPos.current.lerp(desired, Math.min(1, delta * 9))
     }
     camera.position.copy(camPos.current)
-    camera.lookAt(pivot.x, HEAD + 0.12, pivot.z)
+    camera.lookAt(pivot.x, HEAD + 0.12 - pinch * 0.75, pivot.z)
 
     // nearest interactable
     let best: string | null = null

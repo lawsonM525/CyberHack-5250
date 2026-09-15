@@ -10,11 +10,16 @@ import { useLowQuality } from './quality'
  */
 
 function useVelvet(color: string) {
+  const low = useLowQuality()
   return useMemo(() => {
     const tex = fabricTexture().clone()
     tex.needsUpdate = true
     tex.repeat.set(3, 3)
-    // sheen fakes the way velvet catches the practicals along its curves
+    // sheen fakes the way velvet catches the practicals along its curves, but it
+    // is a far heavier shader: the low tier gets a plain lit fabric instead
+    if (low) {
+      return new THREE.MeshStandardMaterial({ color, map: tex, roughness: 0.86 })
+    }
     return new THREE.MeshPhysicalMaterial({
       color,
       map: tex,
@@ -24,7 +29,7 @@ function useVelvet(color: string) {
       sheenRoughness: 0.55,
       sheenColor: new THREE.Color(color).multiplyScalar(1.7),
     })
-  }, [color])
+  }, [color, low])
 }
 
 function useLinen(color: string, repeat = 2) {
@@ -104,7 +109,11 @@ export function VelvetPit() {
       {/* satin throw spilling over the rim */}
       <mesh castShadow position={[1.02, 0.44, 0.26]} rotation={[0.5, -0.4, 0.3]} scale={[1, 0.5, 1.5]}>
         <sphereGeometry args={[0.3, low ? 10 : 20, low ? 8 : 14]} />
-        <meshPhysicalMaterial color="#4d6f38" roughness={0.35} sheen={1} sheenColor="#b9d98a" />
+        {low ? (
+          <meshStandardMaterial color="#4d6f38" roughness={0.35} />
+        ) : (
+          <meshPhysicalMaterial color="#4d6f38" roughness={0.35} sheen={1} sheenColor="#b9d98a" />
+        )}
       </mesh>
     </group>
   )

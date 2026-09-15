@@ -44,6 +44,7 @@ export const BLOCKERS: Rect[] = [
   rect(-2.0, -1.9, -1.2, -1.1), // pouf (west)
   rect(1.41, -1.26, 2.09, -0.54), // pouf (east)
   rect(-5.75, -1.55, -5.05, -0.75), // tall monstera pot
+  rect(-5.78, -0.08, -5.22, 0.48), // fern pot on the west wall
   rect(2.18, -3.72, 2.82, -3.08), // window palm pot
   rect(1.75, -6.65, 3.0, -6.45), // balcony railing (outer, west of the gate)
   rect(4.2, -6.65, 5.05, -6.45), // balcony railing (outer, east of the gate)

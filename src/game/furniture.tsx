@@ -394,15 +394,20 @@ export function Lounge() {
       <group position={[-3.9, 0, 1.95]}>
         <mesh castShadow receiveShadow position={[0, 0.36, 0]}>
           <boxGeometry args={[1.4, 0.05, 0.85]} />
-          <meshPhysicalMaterial
-            color="#20323a"
-            roughness={0.08}
-            metalness={0.1}
-            transmission={0.55}
-            thickness={0.05}
-            transparent
-            opacity={0.85}
-          />
+          {/* transmission costs a whole extra scene pass; the low tier fakes it */}
+          {low ? (
+            <meshStandardMaterial color="#20323a" roughness={0.12} metalness={0.1} transparent opacity={0.6} />
+          ) : (
+            <meshPhysicalMaterial
+              color="#20323a"
+              roughness={0.08}
+              metalness={0.1}
+              transmission={0.55}
+              thickness={0.05}
+              transparent
+              opacity={0.85}
+            />
+          )}
         </mesh>
         {[
           [-0.6, -0.32],
