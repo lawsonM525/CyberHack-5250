@@ -203,10 +203,12 @@ export function Apartment({
         <group position={[4.15, 1.62, 0]}>
           <Framed map={artPlate('botanical')} width={0.62} height={0.93} frame="#6d5b44" />
         </group>
-        <group position={[1.62, 2.02, 0]}>
+        {/* clear of the wardrobe carcass (world x -2.03..-0.17), which stands
+            proud of this wall and hid the pair's first placement */}
+        <group position={[-0.72, 1.98, 0]}>
           <Framed map={artPlate('muse')} width={0.7} height={0.93} />
         </group>
-        <group position={[1.6, 1.24, 0]}>
+        <group position={[-1.78, 1.72, 0]}>
           <Framed map={artPlate('orchid')} width={0.5} height={0.5} frame="#8d6a44" />
         </group>
         <group position={[4.2, 2.42, 0]}>
@@ -220,7 +222,7 @@ export function Apartment({
       </group>
 
       {/* silk study on the east wall, the first thing she faces walking in */}
-      <group position={[ROOM.x1 - 0.02, 1.9, -2.2]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[ROOM.x1 - 0.02, 1.9, -0.35]} rotation={[0, -Math.PI / 2, 0]}>
         <Framed map={artPlate('silk')} width={0.78} height={1.04} lit={!low} />
       </group>
       {/* velvet abstract over the vanity, east wall */}

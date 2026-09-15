@@ -104,6 +104,42 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
   )
 }
 
+const LIGHT_BUDGET = { low: 5, medium: 8, high: 12 } as const
+
+/**
+ * Every lit material pays for every visible point light, and the apartment plus
+ * the street carry around twenty practicals. Keep the nearest few alive and let
+ * the rest sleep: the count stays fixed, so the shaders are compiled once.
+ */
+function LightBudget({ quality }: { quality: 'low' | 'medium' | 'high' }) {
+  const { scene, camera } = useThree()
+  const next = useRef(0)
+  const budget = LIGHT_BUDGET[quality]
+
+  useFrame((_, delta) => {
+    next.current -= delta
+    if (next.current > 0) return
+    next.current = 0.3
+    const points: THREE.PointLight[] = []
+    scene.traverse((o) => {
+      const l = o as THREE.PointLight
+      if (l.isPointLight && l.intensity > 0) points.push(l)
+    })
+    points.sort(
+      (a, b) =>
+        a.getWorldPosition(TMP_A).distanceToSquared(camera.position) -
+        b.getWorldPosition(TMP_B).distanceToSquared(camera.position),
+    )
+    points.forEach((l, i) => {
+      l.visible = i < budget
+    })
+  })
+  return null
+}
+
+const TMP_A = new THREE.Vector3()
+const TMP_B = new THREE.Vector3()
+
 export function Scene({ paused }: { paused: boolean }) {
   const quality = useGame((s) => s.settings.quality)
   const reducedMotion = useGame((s) => s.settings.reducedMotion)
@@ -132,6 +168,7 @@ export function Scene({ paused }: { paused: boolean }) {
       camera={{ fov: 52, near: 0.1, far: 500, position: bootCamera }}
     >
       <Rig quality={quality} />
+      <LightBudget quality={quality} />
       <Sky />
       <Lights quality={quality} />
       <Suspense fallback={null}>
@@ -165,25 +202,33 @@ function Grade({ quality }: { quality: 'low' | 'medium' | 'high' }) {
 function FpsProbe() {
   const setFps = useUi((s) => s.setFps)
   const setRenderInfo = useUi((s) => s.setRenderInfo)
-  const { gl, size } = useThree()
+  const { gl, size, scene, camera } = useThree()
   const acc = useRef({ t: 0, n: 0 })
 
+  // dev-only handle so a profiling script can isolate the cost of each group
   useEffect(() => {
-    const ctx = gl.getContext()
-    setRenderInfo({
-      width: ctx.drawingBufferWidth,
-      height: ctx.drawingBufferHeight,
-      cssWidth: size.width,
-      cssHeight: size.height,
-      samples: ctx.getParameter(ctx.SAMPLES) as number,
-    })
-  }, [gl, size.width, size.height, setRenderInfo])
+    if (!import.meta.env.DEV) return
+    ;(window as unknown as { __scene?: unknown }).__scene = { gl, scene, camera }
+  }, [gl, scene, camera])
 
+  // sampled with the frame rate, not in an effect: the drawing buffer changes
+  // when the quality tier changes the pixel ratio, and that leaves CSS size
+  // untouched, so an effect keyed on size reported a stale resolution
   useFrame((_, d) => {
     acc.current.t += d
     acc.current.n += 1
     if (acc.current.t >= 0.5) {
       setFps(Math.round(acc.current.n / acc.current.t))
+      const ctx = gl.getContext()
+      setRenderInfo({
+        width: ctx.drawingBufferWidth,
+        height: ctx.drawingBufferHeight,
+        cssWidth: size.width,
+        cssHeight: size.height,
+        samples: ctx.getParameter(ctx.SAMPLES) as number,
+        calls: gl.info.render.calls,
+        triangles: gl.info.render.triangles,
+      })
       acc.current.t = 0
       acc.current.n = 0
     }

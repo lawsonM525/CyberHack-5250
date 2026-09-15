@@ -178,8 +178,31 @@ export function Player({
     // standing in a doorway or against a pier, every direction is blocked and a
     // shoulder boom just buries the lens in plaster: look down over the wall
     const boxedIn = cameraBlocked(pivot.x, pivot.z)
+    // swing to the nearest direction with air in it; straight up if there is none,
+    // so the lens never ends up inside the mass she is standing in
+    let escX = dirX
+    let escZ = dirZ
+    let escRadius = 0
+    if (boxedIn) {
+      for (let i = 0; i <= 12; i++) {
+        const off = ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * Math.PI) / 6
+        const y = camYaw.current + off
+        const sx = Math.sin(y)
+        const sz = Math.cos(y)
+        if (!cameraBlocked(pivot.x + sx * 1.05, pivot.z + sz * 1.05)) {
+          escX = sx
+          escZ = sz
+          escRadius = 1.05
+          break
+        }
+      }
+    }
     const desired = boxedIn
-      ? new THREE.Vector3(pivot.x + dirX * 1.05, pivot.y + 1.55, pivot.z + dirZ * 1.05)
+      ? new THREE.Vector3(
+          pivot.x + escX * escRadius,
+          pivot.y + (escRadius > 0 ? 1.55 : 2.4),
+          pivot.z + escZ * escRadius,
+        )
       : new THREE.Vector3(
           pivot.x + dirX * dist,
           Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),

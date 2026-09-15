@@ -6,20 +6,30 @@ import * as THREE from 'three'
  */
 const loader = new THREE.TextureLoader()
 const cache = new Map<string, THREE.Texture>()
-/** Clones handed out before the source decoded; they upload once it arrives. */
-const clones = new Map<string, THREE.Texture[]>()
+
+/**
+ * One warm pixel standing in until the jpeg decodes. Without it every material
+ * bound to a pending plate warns once per draw call, per frame, per pass.
+ */
+function placeholder(): HTMLCanvasElement {
+  const c = document.createElement('canvas')
+  c.width = 1
+  c.height = 1
+  const ctx = c.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = '#6b5a49'
+    ctx.fillRect(0, 0, 1, 1)
+  }
+  return c
+}
 
 function load(file: string, srgb: boolean): THREE.Texture {
   const key = `${file}:${srgb}`
   const hit = cache.get(key)
   if (hit) return hit
-  const t = loader.load(`${import.meta.env.BASE_URL}tex/${file}`, (loaded) => {
-    for (const c of clones.get(key) ?? []) {
-      c.image = loaded.image
-      c.needsUpdate = true
-    }
-    clones.delete(key)
-  })
+  const t = loader.load(`${import.meta.env.BASE_URL}tex/${file}`)
+  t.image = placeholder() as unknown as HTMLImageElement
+  t.needsUpdate = true
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace
   t.wrapS = THREE.RepeatWrapping
   t.wrapT = THREE.RepeatWrapping
@@ -29,14 +39,8 @@ function load(file: string, srgb: boolean): THREE.Texture {
 }
 
 export function facadePlate(variant: 'a' | 'b', repeatX: number, repeatY: number): THREE.Texture {
-  const file = `facade-${variant}.jpg`
-  const src = load(file, true)
-  const t = src.clone()
-  if (src.image) t.needsUpdate = true
-  else {
-    const key = `${file}:true`
-    clones.set(key, [...(clones.get(key) ?? []), t])
-  }
+  const t = load(`facade-${variant}.jpg`, true).clone()
+  t.needsUpdate = true
   t.repeat.set(repeatX, repeatY)
   return t
 }

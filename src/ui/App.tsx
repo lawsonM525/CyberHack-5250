@@ -544,7 +544,7 @@ function Hud() {
       <div className="fps">
         {fps ? `${fps} fps` : ''}
         {fps && render
-          ? ` · ${quality} · ${render.width}×${render.height}${render.samples > 1 ? ` msaa${render.samples}` : ''}`
+          ? ` · ${quality} · ${render.width}×${render.height}${render.samples > 1 ? ` msaa${render.samples}` : ''} · ${render.calls} calls · ${Math.round(render.triangles / 1000)}k tris`
           : ''}
       </div>
 

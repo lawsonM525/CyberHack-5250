@@ -6,6 +6,8 @@ export interface RenderInfo {
   cssWidth: number
   cssHeight: number
   samples: number
+  calls: number
+  triangles: number
 }
 
 /** Transient UI state kept out of the save store so the 3D tree never re-renders for it. */
