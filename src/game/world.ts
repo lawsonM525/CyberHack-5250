@@ -17,7 +17,7 @@ export const WALKABLE = {
   doorway: rect(DOORWAY.x0 + 0.1, -4.62, DOORWAY.x1 - 0.1, -4.3),
   balcony: rect(1.75, -6.65, 5.05, -4.55),
   bridge: rect(3.05, -16.6, 4.15, -6.6),
-  far: rect(1.95, -18.65, 5.45, -16.5),
+  far: rect(1.95, -18.45, 5.45, -16.5),
 } as const
 
 export const FAR_BALCONY = { z: -16.6, y: 0 }
@@ -118,7 +118,9 @@ export const CAMERA_WALLS: Rect[] = [
   rect(1.7, ROOM.z0 - 0.28, DOORWAY.x0, ROOM.z0), // north, beside the balcony
   rect(DOORWAY.x1, ROOM.z0 - 0.28, 5.15, ROOM.z0), // north, balcony-side pier
   rect(5.15, -6.4, ROOM.x1 + 12, ROOM.z0), // north, east of the balcony
-  rect(-10, -30, 14, -18.7), // Kingsley Row facade and balcony recess wall
+  // Kingsley Row facade and balcony recess wall. It sits far enough back that
+  // the skin never covers the strip she stands on at the bell
+  rect(-10, -30, 14, -19.0),
 ]
 
 /** Tall furniture the boom should ride around instead of burying itself in. */

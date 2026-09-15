@@ -51,6 +51,8 @@ export function Prop({
 }
 
 export function preloadProps() {
-  const names: PropName[] = ['sofa', 'floorlamp', 'monstera', 'vanity', 'desk', 'incense', 'speaker', 'bookshelf']
+  // only the ones the room actually mounts; the rest lost the audition to
+  // procedural builds and would be a couple of megabytes of dead download
+  const names: PropName[] = ['monstera', 'incense', 'speaker', 'bookshelf']
   names.forEach((n) => useGLTF.preload(url(n), false, true))
 }

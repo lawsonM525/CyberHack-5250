@@ -203,12 +203,9 @@ export function Apartment({
         <group position={[4.15, 1.62, 0]}>
           <Framed map={artPlate('botanical')} width={0.62} height={0.93} frame="#6d5b44" />
         </group>
-        {/* clear of the wardrobe carcass (world x -2.03..-0.17), which stands
-            proud of this wall and hid the pair's first placement */}
-        <group position={[-0.72, 1.98, 0]}>
-          <Framed map={artPlate('muse')} width={0.7} height={0.93} />
-        </group>
-        <group position={[-1.78, 1.72, 0]}>
+        {/* the wall's only clear run: the wardrobe and the two bookshelves stand
+           proud of it everywhere between local x -5.1 and 3.3 */}
+        <group position={[-5.35, 1.74, 0]}>
           <Framed map={artPlate('orchid')} width={0.5} height={0.5} frame="#8d6a44" />
         </group>
         <group position={[4.2, 2.42, 0]}>
@@ -221,8 +218,13 @@ export function Apartment({
         <Framed map={artPlate('city')} width={1.5} height={1.0} lit={!low} frame="#3a3f48" />
       </group>
 
+      {/* figure study over the desk end of the west wall */}
+      <group position={[ROOM.x0 + 0.02, 1.98, 1.95]} rotation={[0, Math.PI / 2, 0]}>
+        <Framed map={artPlate('muse')} width={0.7} height={0.93} lit={!low} />
+      </group>
+
       {/* silk study on the east wall, the first thing she faces walking in */}
-      <group position={[ROOM.x1 - 0.02, 1.9, -0.35]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[ROOM.x1 - 0.02, 2.18, -0.35]} rotation={[0, -Math.PI / 2, 0]}>
         <Framed map={artPlate('silk')} width={0.78} height={1.04} lit={!low} />
       </group>
       {/* velvet abstract over the vanity, east wall */}

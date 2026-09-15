@@ -23,26 +23,30 @@ function placeholder(): HTMLCanvasElement {
   return c
 }
 
-function load(file: string, srgb: boolean): THREE.Texture {
-  const key = `${file}:${srgb}`
+function load(file: string, srgb: boolean, repeatX = 1, repeatY = 1): THREE.Texture {
+  const key = `${file}:${srgb}:${repeatX}:${repeatY}`
   const hit = cache.get(key)
   if (hit) return hit
-  const t = loader.load(`${import.meta.env.BASE_URL}tex/${file}`)
-  t.image = placeholder() as unknown as HTMLImageElement
-  t.needsUpdate = true
+  const t = new THREE.Texture(placeholder() as unknown as HTMLImageElement)
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace
   t.wrapS = THREE.RepeatWrapping
   t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(repeatX, repeatY)
   t.anisotropy = 8
+  t.needsUpdate = true
+  loader.load(`${import.meta.env.BASE_URL}tex/${file}`, (loaded) => {
+    // drop the one-pixel allocation first: swapping the image in place makes
+    // three re-upload into storage sized for the placeholder
+    t.dispose()
+    t.image = loaded.image
+    t.needsUpdate = true
+  })
   cache.set(key, t)
   return t
 }
 
 export function facadePlate(variant: 'a' | 'b', repeatX: number, repeatY: number): THREE.Texture {
-  const t = load(`facade-${variant}.jpg`, true).clone()
-  t.needsUpdate = true
-  t.repeat.set(repeatX, repeatY)
-  return t
+  return load(`facade-${variant}.jpg`, true, repeatX, repeatY)
 }
 
 export function skylinePlate(): THREE.Texture {

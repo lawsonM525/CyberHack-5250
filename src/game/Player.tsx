@@ -200,7 +200,7 @@ export function Player({
     const desired = boxedIn
       ? new THREE.Vector3(
           pivot.x + escX * escRadius,
-          pivot.y + (escRadius > 0 ? 1.55 : 2.4),
+          pivot.y + (escRadius > 0 ? 0.85 : 1.5),
           pivot.z + escZ * escRadius,
         )
       : new THREE.Vector3(
