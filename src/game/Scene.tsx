@@ -111,12 +111,24 @@ export function Scene({ paused }: { paused: boolean }) {
   const deployedAt = useGame((s) => s.bridgeDeployedAt)
   const unlocked = stage === 'unlocked' || stage === 'crossed'
 
+  // the player controller suspends on the rigged GLB; nothing it owns exists yet
+  useEffect(() => {
+    setFocus(null)
+  }, [setFocus])
+
+  const bootCamera = useMemo<[number, number, number]>(() => {
+    const [x, z] = useGame.getState().respawn.at
+    return [x, 1.75, z + 2.9]
+  }, [])
+
   return (
     <Canvas
       shadows={quality !== 'low'}
       dpr={quality === 'high' ? [1, 1.75] : quality === 'medium' ? [1, 1.25] : 0.45}
       gl={{ antialias: quality !== 'low', powerPreference: 'high-performance' }}
-      camera={{ fov: 52, near: 0.1, far: 500, position: [0.6, 1.6, 5.4] }}
+      // seated where the boom will be, so the first frames are already the
+      // gameplay view even while the heroine is still loading
+      camera={{ fov: 52, near: 0.1, far: 500, position: bootCamera }}
     >
       <Rig quality={quality} />
       <Sky />

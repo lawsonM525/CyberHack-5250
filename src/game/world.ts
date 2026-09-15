@@ -109,9 +109,27 @@ export const CAMERA_WALLS: Rect[] = [
   rect(-10, -30, 14, -19.3), // Kingsley Row facade behind the far balcony
 ]
 
+/** Tall furniture the boom should ride around instead of burying itself in. */
+const CAMERA_PROPS: Rect[] = [
+  rect(-5.45, 3.05, -2.15, 4.4), // sofa
+  rect(0.45, 3.85, 2.95, 4.4), // bookshelf
+  rect(3.35, 3.85, 4.75, 4.4), // record console
+  rect(4.95, -1.25, 5.9, 1.45), // vanity
+  rect(4.95, 2.15, 5.9, 3.65), // kitchenette counter
+  rect(5.15, -3.25, 5.9, -2.35), // corner palm
+  rect(-2.25, -4.4, 1.95, -3.6), // window garden planters
+  rect(-5.55, -4.4, -2.7, -3.45), // desk
+]
+
+/** Keeps the boom a body's width off any wall, so it never grazes through one. */
+const CAMERA_SKIN = 0.45
+
 export function cameraBlocked(x: number, z: number): boolean {
   for (const w of CAMERA_WALLS) {
-    if (inside(w, x, z)) return true
+    if (inside(w, x, z, CAMERA_SKIN)) return true
+  }
+  for (const p of CAMERA_PROPS) {
+    if (inside(p, x, z, 0.22)) return true
   }
   return false
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProgress } from '@react-three/drei'
 import { Scene, LookPreview } from '../game/Scene'
 import { Terminal } from './Terminal'
 import { useGame, persist, type Settings } from '../state/store'
@@ -69,18 +70,71 @@ export function App() {
 
   if (phase === 'title') return <Title />
   if (phase === 'select') return <LookSelect />
+  return <Playing glitch={glitch} reducedMotion={settings.reducedMotion} overlay={overlay} />
+}
+
+function Playing({
+  glitch,
+  reducedMotion,
+  overlay,
+}: {
+  glitch: boolean
+  reducedMotion: boolean
+  overlay: ReturnType<typeof useGame.getState>['overlay']
+}) {
+  const ready = useSceneReady()
 
   return (
-    <div className={`app ${glitch && !settings.reducedMotion ? 'glitching' : ''}`}>
+    <div className={`app ${glitch && !reducedMotion ? 'glitching' : ''}`}>
       <div className="scene">
         <Scene paused={overlay !== null} />
       </div>
       <div className="grade" />
-      <Hud />
+      {!ready && <SceneLoading />}
+      {ready && <Hud />}
       {overlay === 'computer' && <ComputerOverlay />}
       {overlay === 'inspect' && <InspectOverlay />}
       {overlay === 'pause' && <PauseMenu />}
       {overlay === 'complete' && <Finale />}
+    </div>
+  )
+}
+
+// ----------------------------------------------------------------- loading
+
+/** The flat streams in over several seconds; until it has, the camera is
+ *  looking at bare city geometry, so nothing of the game is shown yet. */
+function useSceneReady(): boolean {
+  const active = useProgress((s) => s.active)
+  const progress = useProgress((s) => s.progress)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (ready) return undefined
+    if (!active && progress >= 100) {
+      const t = window.setTimeout(() => setReady(true), 250)
+      return () => window.clearTimeout(t)
+    }
+    // never strand the player behind the curtain if a request dies
+    const bail = window.setTimeout(() => setReady(true), 45000)
+    return () => window.clearTimeout(bail)
+  }, [active, progress, ready])
+
+  return ready
+}
+
+function SceneLoading() {
+  const progress = useProgress((s) => s.progress)
+  return (
+    <div className="booting">
+      <div className="booting-inner">
+        <p className="eyebrow">Cyberhack 5250</p>
+        <h2>Warming the flat</h2>
+        <div className="bar">
+          <span style={{ width: `${Math.max(6, Math.round(progress))}%` }} />
+        </div>
+        <p className="hint">Kettle on, rain on the glass, terminal booting.</p>
+      </div>
     </div>
   )
 }

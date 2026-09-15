@@ -346,6 +346,58 @@ button {
   color: var(--muted);
 }
 
+/* ----------------------------------------------------------------- booting */
+
+.booting {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(120% 90% at 50% 40%, #1a1024 0%, #08060f 70%);
+}
+
+.booting-inner {
+  width: min(420px, 78vw);
+  text-align: center;
+}
+
+.booting-inner .eyebrow {
+  margin: 0 0 10px;
+  color: #7fe4e0;
+  font-size: 12px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.booting-inner h2 {
+  margin: 0 0 22px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #ffd9b0;
+}
+
+.booting-inner .bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.booting-inner .bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff8fc0, #ffb76b);
+  transition: width 320ms ease;
+}
+
+.booting-inner .hint {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* --------------------------------------------------------------------- hud */
 
 .hud {
