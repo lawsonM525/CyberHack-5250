@@ -36,6 +36,13 @@ export const BLOCKERS: Rect[] = [
   rect(4.15, -0.25, 4.95, 0.65), // vanity stool
   rect(4.95, 2.15, 5.9, 3.65), // kitchenette counter
   rect(5.15, -3.25, 5.9, -2.35), // corner palm
+  rect(-2.1, 3.7, -0.1, 4.4), // open wardrobe
+  rect(-2.95, -3.75, -2.15, -2.95), // mushroom lamp by the window
+  rect(0.03, -2.62, 0.67, -1.98), // side table
+  rect(-2.0, -1.9, -1.2, -1.1), // pouf (west)
+  rect(1.41, -1.26, 2.09, -0.54), // pouf (east)
+  rect(-5.7, -2.9, -5.0, -2.1), // tall monstera pot
+  rect(1.98, -3.72, 2.62, -3.08), // window palm pot
   rect(1.75, -6.65, 3.0, -6.45), // balcony railing (outer, west of the gate)
   rect(4.2, -6.65, 5.05, -6.45), // balcony railing (outer, east of the gate)
   rect(1.75, -6.65, 1.95, -4.55), // balcony railing (west)
@@ -119,6 +126,8 @@ const CAMERA_PROPS: Rect[] = [
   rect(5.15, -3.25, 5.9, -2.35), // corner palm
   rect(-2.25, -4.4, 1.95, -3.6), // window garden planters
   rect(-5.55, -4.4, -2.7, -3.45), // desk
+  rect(-2.1, 3.7, -0.1, 4.4), // open wardrobe
+  rect(-5.7, -2.9, -5.0, -2.1), // tall monstera pot
 ]
 
 /** Keeps the boom a body's width off any wall, so it never grazes through one. */

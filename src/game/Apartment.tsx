@@ -5,6 +5,7 @@ import { plasterTexture, woodTexture } from './textures'
 import { artPlate, posterPlate, rugPlate } from './assets'
 import { Fern, HangingVine, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
 import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, RecordConsole, Speaker, Vanity } from './furniture'
+import { Curtains, HangingBasket, MushroomLamp, Pouf, SideTable, Wardrobe, WindowSeat } from './cozy'
 import type { MissionStage } from '../state/store'
 import { useLowQuality } from './quality'
 
@@ -27,16 +28,18 @@ function Framed({
 }) {
   return (
     <group>
-      <mesh>
+      {/* canvas sits proud of its backing, and the backing proud of the wall, so
+          nothing is coplanar with the plaster and the frames cannot z-fight */}
+      <mesh position={[0, 0, 0.045]}>
         <planeGeometry args={[width, height]} />
-        <meshStandardMaterial map={map} roughness={0.92} />
+        <meshStandardMaterial map={map} roughness={0.92} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
-      <mesh position={[0, 0, -0.014]}>
-        <boxGeometry args={[width + 0.08, height + 0.08, 0.024]} />
+      <mesh position={[0, 0, 0.025]}>
+        <boxGeometry args={[width + 0.08, height + 0.08, 0.04]} />
         <meshStandardMaterial color={frame} metalness={0.75} roughness={0.38} />
       </mesh>
       {lit && (
-        <group position={[0, height / 2 + 0.12, 0.16]}>
+        <group position={[0, height / 2 + 0.12, 0.2]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.035, 0.035, width * 0.5, 10]} />
             <meshStandardMaterial color="#b9915a" metalness={0.8} roughness={0.3} />
@@ -54,14 +57,15 @@ function useRoomMaterials(low: boolean) {
     floorTex.needsUpdate = true
     floorTex.repeat.set(6, 4.5)
     floorTex.rotation = Math.PI / 2
-    const floor = new THREE.MeshStandardMaterial({ map: floorTex, color: '#8a6a4e', roughness: 0.42, metalness: 0.04 })
+    // matte oiled oak: the old gloss turned the empty floor into a mirror
+    const floor = new THREE.MeshStandardMaterial({ map: floorTex, color: '#8f6f50', roughness: 0.78, metalness: 0.0 })
 
     const wallTex = plasterTexture().clone()
     wallTex.needsUpdate = true
     wallTex.repeat.set(3, 1.4)
-    const wall = new THREE.MeshStandardMaterial({ map: wallTex, color: '#6a5f74', roughness: 0.94 })
+    const wall = new THREE.MeshStandardMaterial({ map: wallTex, color: '#8a7460', roughness: 0.95 })
 
-    const ceil = new THREE.MeshStandardMaterial({ color: '#1d1a24', roughness: 1 })
+    const ceil = new THREE.MeshStandardMaterial({ color: '#3a2f28', roughness: 1 })
     const frame = new THREE.MeshStandardMaterial({ color: '#23262e', metalness: 0.7, roughness: 0.35 })
     // transmission needs a second render pass; far too expensive on the low tier
     const glass = low
@@ -175,10 +179,19 @@ export function Apartment({
         <boxGeometry args={[DOORWAY.x1 - DOORWAY.x0 + 0.12, 0.1, 0.16]} />
       </mesh>
 
-      {/* rug */}
+      {/* rugs: the lounge one, plus a big layered rug under the open floor so the
+          opening camera reads as a furnished room rather than bare boards */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-3.7, 0.006, 2.4]}>
         <planeGeometry args={[3.8, 3.4]} />
         <meshStandardMaterial map={rug} roughness={0.98} />
+      </mesh>
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.004, -1.5]}>
+        <planeGeometry args={[6.2, 4.4]} />
+        <meshStandardMaterial map={rug} color="#b89a7a" roughness={0.99} />
+      </mesh>
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.008, -1.5]}>
+        <planeGeometry args={[3.4, 2.4]} />
+        <meshStandardMaterial map={rug} color="#8a5f52" roughness={0.99} />
       </mesh>
 
       {/* gallery wall, south side above the lounge */}
@@ -216,32 +229,49 @@ export function Apartment({
         <boxGeometry args={[0.03, 0.03, ROOM.z1 - ROOM.z0 - 0.6]} />
         <meshBasicMaterial color="#4fd0c0" toneMapped={false} />
       </mesh>
-      <pointLight position={[0, H - 0.2, ROOM.z1 - 0.5]} color="#c2447a" intensity={1.6} distance={7} decay={2} />
-      {!low && <pointLight position={[ROOM.x0 + 0.5, H - 0.2, 0]} color="#4fd0c0" intensity={1.2} distance={6} decay={2} />}
+      <pointLight position={[0, H - 0.2, ROOM.z1 - 0.5]} color="#c2447a" intensity={1.2} distance={7} decay={2} />
+      {!low && <pointLight position={[ROOM.x0 + 0.5, H - 0.2, 0]} color="#4fd0c0" intensity={0.9} distance={6} decay={2} />}
+      {/* warm practical fill: keeps the middle of the room readable without
+          washing out the neon coming through the glass */}
+      <pointLight position={[0.2, 2.5, -1.2]} color="#ffb877" intensity={12} distance={12} decay={2} />
+      <pointLight position={[-2.2, 2.4, 2.4]} color="#ffa864" intensity={9} distance={11} decay={2} />
+      {/* wall wash so the plaster never falls to black behind the furniture */}
+      <pointLight position={[3.9, 2.4, 2.0]} color="#ffc48a" intensity={9} distance={11} decay={2} />
 
-      {/* window garden bench + the four clue plants */}
-      <group position={[-0.15, 0, -4.0]}>
-        <mesh castShadow receiveShadow position={[0, 0.22, 0]}>
-          <boxGeometry args={[4.3, 0.44, 0.66]} />
-          <meshStandardMaterial map={woodTexture()} color="#7d6a52" roughness={0.6} />
-        </mesh>
-      </group>
-      <Planter position={[-1.7, 0.44, -4.0]} radius={0.2} height={0.3} tag="jasmine" />
-      <Jasmine position={[-1.7, 0.74, -4.0]} scale={1.0} />
-      <Planter position={[-0.6, 0.44, -4.0]} radius={0.19} height={0.28} tag="fern" />
-      <Fern position={[-0.6, 0.72, -4.0]} scale={0.95} />
-      <Planter position={[0.55, 0.44, -4.0]} radius={0.22} height={0.32} tag="monstera" />
-      <Monstera position={[0.55, 0.76, -4.0]} scale={1.15} />
-      <Planter position={[1.65, 0.44, -4.0]} radius={0.18} height={0.28} tag="orchid" />
-      <NightOrchid position={[1.65, 0.72, -4.0]} scale={1.0} />
-      {!low && <pointLight position={[-0.15, 1.5, -3.7]} color="#8fe0c0" intensity={0.9} distance={4.5} decay={2} />}
+      {/* window garden: slatted seat + the four clue plants, each in its own pot */}
+      <WindowSeat />
+      <Planter position={[-1.7, 0.44, -4.0]} radius={0.2} height={0.34} color="#9c5a3c" tag="jasmine" />
+      <Jasmine position={[-1.7, 0.78, -4.0]} scale={1.05} />
+      <Planter position={[-0.6, 0.44, -4.0]} radius={0.23} height={0.22} color="#cdbba0" tag="fern" />
+      <Fern position={[-0.6, 0.66, -4.0]} scale={1.15} />
+      <Planter position={[0.55, 0.44, -4.0]} radius={0.26} height={0.42} color="#6f7a72" tag="monstera" />
+      <Monstera position={[0.55, 0.86, -4.0]} scale={1.3} />
+      <Planter position={[1.65, 0.44, -4.0]} radius={0.15} height={0.26} color="#3f4a52" tag="orchid" />
+      <NightOrchid position={[1.65, 0.7, -4.0]} scale={1.05} />
+      {!low && <pointLight position={[-0.15, 1.5, -3.7]} color="#9ae0b8" intensity={0.8} distance={4.5} decay={2} />}
 
-      {/* greenery elsewhere */}
+      {/* layered greenery: floor pots, hanging baskets and vines at three heights */}
       <CornerPalm position={[5.5, 0.05, -2.8]} scale={1.15} />
       <HangingVine position={[-5.3, 2.8, -1.4]} length={1.3} strands={6} />
       <HangingVine position={[3.0, 2.85, 1.0]} length={1.0} strands={5} />
-      <Planter position={[-5.5, 0, 0.2]} radius={0.24} height={0.34} />
+      <HangingVine position={[-2.6, 2.86, -4.05]} length={1.5} strands={7} />
+      <HangingVine position={[2.1, 2.9, -4.05]} length={1.15} strands={5} />
+      <HangingBasket position={[-3.4, 2.5, -4.0]} />
+      <Jasmine position={[-3.4, 2.5, -4.0]} scale={1.5} />
+      <Planter position={[-5.5, 0, 0.2]} radius={0.24} height={0.34} color="#9c5a3c" />
       <Fern position={[-5.5, 0.34, 0.2]} scale={1.1} />
+      <Planter position={[-5.35, 0, -2.5]} radius={0.3} height={0.5} color="#cdbba0" />
+      <Monstera position={[-5.35, 0.52, -2.5]} scale={1.45} />
+      <Planter position={[2.3, 0, -3.4]} radius={0.27} height={0.44} color="#6f7a72" />
+      <CornerPalm position={[2.3, 0.44, -3.4]} scale={0.85} />
+
+      {/* soft furnishings in the open floor the opening camera looks across */}
+      <Pouf position={[-1.6, 0, -1.5]} color="#8a5a3c" radius={0.38} />
+      <Pouf position={[1.75, 0, -0.9]} color="#5c4a60" radius={0.32} />
+      <SideTable position={[0.35, 0, -2.3]} />
+      <MushroomLamp position={[-2.55, 0.0, -3.35]} scale={1.15} intensity={11} />
+      <Wardrobe />
+      <Curtains low={low} />
 
       <Desk stage={stage} unread={unread} />
       <Chair />

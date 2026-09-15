@@ -106,6 +106,7 @@ export function City({ quality }: { quality: 'low' | 'medium' | 'high' }) {
         </mesh>
       ))}
       <HomeTower />
+      <Haze />
       <SkylineBackdrop />
       <Signage />
       <Traffic quality={quality} />
@@ -120,7 +121,9 @@ function HomeTower() {
   const facade = useMemo(() => facadePlate('b', 3, 10), [])
   return (
     <group>
-      <mesh position={[0, 8, 13]}>
+      {/* the front face clears the apartment's south wall (z = 4.7) instead of
+          sitting on it, which made the two surfaces z-fight */}
+      <mesh position={[0, 8, 14.8]}>
         <boxGeometry args={[34, 92, 17]} />
         <meshStandardMaterial
           color="#8f95a8"
@@ -143,6 +146,34 @@ function HomeTower() {
           roughness={0.88}
         />
       </mesh>
+    </group>
+  )
+}
+
+/**
+ * Depth cards: soft warm-grey veils between the tower rings so distance reads
+ * as atmosphere rather than every facade sitting at the same contrast.
+ */
+function Haze() {
+  const mat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#2a3550',
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+      }),
+    [],
+  )
+  return (
+    <group>
+      {[-45, -85, -140, -210].map((z, i) => (
+        <mesh key={z} position={[0, 0, z]} material={mat} scale={[1, 1, 1]} renderOrder={1 + i}>
+          <planeGeometry args={[520, 360]} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -306,7 +337,7 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
     c.repeat.set(6, 10)
     return c
   }, [])
-  const facade = useMemo(() => facadePlate('a', 3, 9), [])
+  const facade = useMemo(() => facadePlate('a', 2, 6), [])
   const lamp = useRef<THREE.PointLight>(null)
   const panel = useRef<THREE.MeshStandardMaterial>(null)
   useFrame(({ clock }) => {
@@ -336,6 +367,30 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
           roughness={0.85}
         />
       </mesh>
+      {/* setbacks, ledges and service masses: the facade read as architecture
+          instead of one tiled wall of identical windows */}
+      {[
+        { y: -6, x: -11.5, w: 7, h: 30, d: 3.2 },
+        { y: 16, x: 9.5, w: 9, h: 40, d: 2.6 },
+        { y: 30, x: -3, w: 12, h: 26, d: 2.0 },
+      ].map((s, i) => (
+        <mesh key={i} position={[s.x, s.y, -29 + 9 + s.d / 2]}>
+          <boxGeometry args={[s.w, s.h, s.d]} />
+          <meshStandardMaterial color="#3d3f4c" roughness={0.95} />
+        </mesh>
+      ))}
+      {Array.from({ length: 7 }, (_, i) => (
+        <mesh key={`ledge-${i}`} position={[0, -12 + i * 13, -29 + 9 + 0.45]}>
+          <boxGeometry args={[30.4, 0.5, 0.9]} />
+          <meshStandardMaterial color="#33353f" roughness={0.95} />
+        </mesh>
+      ))}
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={`fin-${i}`} position={[-12 + i * 6, 14, -29 + 9 + 0.3]}>
+          <boxGeometry args={[0.55, 64, 0.6]} />
+          <meshStandardMaterial color="#2d2f38" roughness={0.95} />
+        </mesh>
+      ))}
       {/* balcony recess wall */}
       <mesh position={[3.7, 1.6, -19.55]}>
         <boxGeometry args={[6.2, 6, 1.6]} />

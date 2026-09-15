@@ -74,11 +74,12 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
   const low = quality === 'low'
   return (
     <group>
-      <ambientLight color="#4a4266" intensity={0.95} />
-      <hemisphereLight color="#54689e" groundColor="#3a281c" intensity={0.9} />
+      {/* warm lamplight bounce, not the cold blue wash the room used to sit in */}
+      <ambientLight color="#6f5744" intensity={1.5} />
+      <hemisphereLight color="#b58a5e" groundColor="#4a3222" intensity={1.25} />
       {/* city spill through the window */}
-      <directionalLight color="#8fb0ff" intensity={1.15} position={[-2.5, 4.5, -12]} />
-      <directionalLight color="#ffb06a" intensity={0.45} position={[4, 3, 6]} />
+      <directionalLight color="#8fb0ff" intensity={0.85} position={[-2.5, 4.5, -12]} />
+      <directionalLight color="#ffc188" intensity={0.8} position={[4, 3, 6]} />
       {/* desk lamp, floor lamp and vanity bulbs as warm pools */}
       <pointLight color="#ffb46a" intensity={9} distance={5.5} decay={2} position={[-3.4, 1.35, -3.3]} />
       <pointLight color="#ffc890" intensity={12} distance={6} decay={2} position={[-5.5, 1.7, 2.9]} />
@@ -86,8 +87,8 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
       {!low && <pointLight color="#6fd9ff" intensity={5} distance={4} decay={2} position={[-4.2, 1.25, -3.5]} />}
       {/* warm practical over the room */}
       <spotLight
-        color="#ffbf80"
-        intensity={34}
+        color="#ffc48c"
+        intensity={44}
         distance={11}
         angle={0.95}
         penumbra={0.85}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 /** A simple pointed leaf outline in the XY plane, tip at +Y. */
 function leafShape(len: number, width: number, notch = false): THREE.Shape {
@@ -22,12 +23,61 @@ function leafShape(len: number, width: number, notch = false): THREE.Shape {
   return s
 }
 
-function useLeafGeo(len: number, width: number, notch = false) {
+/**
+ * Curls a flat leaf outline into a cupped, drooping blade: the cross-section is
+ * troughed around the midrib and the tip falls away, so leaves catch light along
+ * an edge instead of reading as paper cut-outs.
+ */
+function curl(g: THREE.BufferGeometry, len: number, width: number, droop: number) {
+  const p = g.attributes.position as THREE.BufferAttribute
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i)
+    const y = p.getY(i)
+    const t = Math.max(0, Math.min(1, y / len))
+    const cup = -((x / Math.max(width, 0.001)) ** 2) * width * 0.55
+    p.setZ(i, cup - droop * t * t * len * 0.45)
+    p.setY(i, y * (1 - droop * 0.12 * t))
+  }
+  p.needsUpdate = true
+  g.computeVertexNormals()
+}
+
+function useLeafGeo(len: number, width: number, notch = false, droop = 0.6) {
   return useMemo(() => {
     const g = new THREE.ShapeGeometry(leafShape(len, width, notch), 18)
-    g.computeVertexNormals()
+    curl(g, len, width, droop)
     return g
-  }, [len, width, notch])
+  }, [len, width, notch, droop])
+}
+
+/**
+ * A pinnate frond baked into one geometry: leaflets step up an arching rachis,
+ * shrinking and drooping toward the tip, so a palm or fern reads as a spray of
+ * blades rather than one flat paddle — and costs a single draw call.
+ */
+function usePinnateGeo(len: number, leafLen: number, leafWidth: number, pairs: number, arch = 0.45) {
+  return useMemo(() => {
+    const parts: THREE.BufferGeometry[] = []
+    for (let i = 0; i < pairs; i++) {
+      const t = (i + 1) / (pairs + 1)
+      const s = 1 - t * 0.55
+      const y = len * t
+      const z = -arch * t * t * len
+      for (const side of [-1, 1]) {
+        const g = new THREE.ShapeGeometry(leafShape(leafLen, leafWidth, false), 8)
+        curl(g, leafLen, leafWidth, 0.5)
+        g.scale(s, s, s)
+        g.rotateZ(side * (Math.PI / 2.6 - t * 0.35))
+        g.rotateX(-arch * t * 0.8)
+        g.translate(0, y, z)
+        parts.push(g)
+      }
+    }
+    const merged = mergeGeometries(parts, false) ?? new THREE.BufferGeometry()
+    parts.forEach((g) => g.dispose())
+    merged.computeVertexNormals()
+    return merged
+  }, [len, leafLen, leafWidth, pairs, arch])
 }
 
 const greenA = '#3e7f4e'
@@ -53,6 +103,15 @@ export function Planter({
         <cylinderGeometry args={[radius, radius * 0.78, height, 20]} />
         <meshStandardMaterial color={color} roughness={0.85} />
       </mesh>
+      {/* thrown rim and a saucer: gives each pot a silhouette of its own */}
+      <mesh castShadow position={[0, height - 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius * 0.99, radius * 0.07, 6, 20]} />
+        <meshStandardMaterial color={color} roughness={0.7} />
+      </mesh>
+      <mesh receiveShadow position={[0, 0.012, 0]}>
+        <cylinderGeometry args={[radius * 0.92, radius * 0.86, 0.024, 20]} />
+        <meshStandardMaterial color={color} roughness={0.9} />
+      </mesh>
       <mesh position={[0, height - 0.01, 0]}>
         <cylinderGeometry args={[radius * 0.94, radius * 0.94, 0.03, 20]} />
         <meshStandardMaterial color="#2a1f18" roughness={1} />
@@ -74,7 +133,7 @@ export function Planter({
 }
 
 export function Monstera({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const geo = useLeafGeo(0.52, 0.3, true)
+  const geo = useLeafGeo(0.52, 0.26, true, 0.95)
   const leaves = useMemo(
     () =>
       Array.from({ length: 9 }, (_, i) => ({
@@ -113,7 +172,7 @@ export function Monstera({ position, scale = 1 }: { position: [number, number, n
 }
 
 export function Fern({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const frondGeo = useLeafGeo(0.1, 0.035)
+  const frondGeo = usePinnateGeo(0.36, 0.1, 0.035, 7, 0.5)
   const fronds = useMemo(
     () =>
       Array.from({ length: 14 }, (_, i) => ({
@@ -132,20 +191,13 @@ export function Fern({ position, scale = 1 }: { position: [number, number, numbe
               <cylinderGeometry args={[0.005, 0.008, f.len, 5]} />
               <meshStandardMaterial color="#3d6b3f" roughness={0.9} />
             </mesh>
-            {Array.from({ length: 7 }, (_, j) => {
-              const t = (j + 1) / 8
-              return [-1, 1].map((s) => (
-                <mesh
-                  key={`${j}-${s}`}
-                  geometry={frondGeo}
-                  position={[0, f.len * t, 0]}
-                  rotation={[0, 0, (s * Math.PI) / 2.4]}
-                  scale={1 - t * 0.45}
-                >
-                  <meshStandardMaterial color={greenC} roughness={0.7} side={THREE.DoubleSide} />
-                </mesh>
-              ))
-            })}
+            <mesh geometry={frondGeo} castShadow scale={f.len / 0.36}>
+              <meshStandardMaterial
+                color={i % 3 ? greenC : greenA}
+                roughness={0.7}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
           </group>
         </group>
       ))}
@@ -240,7 +292,7 @@ export function NightOrchid({ position, scale = 1 }: { position: [number, number
 }
 
 export function CornerPalm({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const leafGeo = useLeafGeo(0.75, 0.16)
+  const frondGeo = usePinnateGeo(0.78, 0.2, 0.045, 9, 0.4)
   const fronds = useMemo(
     () =>
       Array.from({ length: 11 }, (_, i) => ({
@@ -258,9 +310,19 @@ export function CornerPalm({ position, scale = 1 }: { position: [number, number,
       </mesh>
       {fronds.map((f, i) => (
         <group key={i} position={[0, f.h, 0]} rotation={[0, f.a, 0]}>
-          <mesh geometry={leafGeo} castShadow rotation={[-f.tilt, 0, 0]} position={[0, 0, 0.02]}>
-            <meshStandardMaterial color={i % 3 ? greenA : greenC} roughness={0.68} side={THREE.DoubleSide} />
-          </mesh>
+          <group rotation={[-f.tilt, 0, 0]} position={[0, 0, 0.02]}>
+            <mesh position={[0, 0.34, -0.06]} rotation={[0.24, 0, 0]}>
+              <cylinderGeometry args={[0.007, 0.012, 0.72, 5]} />
+              <meshStandardMaterial color="#4d6b45" roughness={0.9} />
+            </mesh>
+            <mesh geometry={frondGeo} castShadow>
+              <meshStandardMaterial
+                color={i % 3 ? greenA : greenC}
+                roughness={0.68}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+          </group>
         </group>
       ))}
     </group>

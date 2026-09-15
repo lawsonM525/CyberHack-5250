@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { fabricTexture, posterTexture, woodTexture } from './textures'
+import { fabricTexture, woodTexture } from './textures'
+import { artPlate } from './assets'
 import { Prop } from './props'
+import { MushroomLamp, VelvetPit } from './cozy'
 import { useGame, type MissionStage, type TermTheme } from '../state/store'
 import { useLowQuality } from './quality'
 
@@ -112,16 +114,21 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
   return (
     <group position={[-4.12, 0, -3.92]}>
       {/* top */}
+      {/* walnut top with a rounded front lip */}
       <mesh castShadow receiveShadow position={[0, 0.74, 0]}>
         <boxGeometry args={[2.85, 0.06, 0.92]} />
-        <meshStandardMaterial map={topTex} roughness={0.5} metalness={0.05} />
+        <meshStandardMaterial map={topTex} color="#9a7147" roughness={0.45} metalness={0.05} />
+      </mesh>
+      <mesh position={[0, 0.74, 0.46]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.032, 0.032, 2.85, 12]} />
+        <meshStandardMaterial map={topTex} color="#9a7147" roughness={0.45} />
       </mesh>
       {/* frame */}
       {[-1.35, 1.35].map((x) => (
         <group key={x}>
           <mesh castShadow position={[x, 0.37, 0]}>
             <boxGeometry args={[0.06, 0.74, 0.8]} />
-            <meshStandardMaterial color="#2b2f36" roughness={0.35} metalness={0.8} />
+            <meshStandardMaterial color="#8a6a3a" roughness={0.32} metalness={0.85} />
           </mesh>
         </group>
       ))}
@@ -381,8 +388,7 @@ export function Lounge() {
   const fab = fabricTexture()
   return (
     <group>
-      <Prop name="sofa" height={0.92} position={[-4.3, 0, 3.6]} rotation={Math.PI} />
-      <Prop name="sofa" height={0.92} position={[-2.9, 0, 3.6]} rotation={Math.PI} />
+      <VelvetPit />
 
       {/* coffee table */}
       <group position={[-3.9, 0, 1.95]}>
@@ -444,17 +450,17 @@ export function Lounge() {
         </mesh>
       ))}
 
-      {/* floor lamp */}
-      <group position={[-5.55, 0, 2.9]}>
-        <Prop name="floorlamp" height={1.75} position={[0, 0, 0]} />
-        <pointLight position={[0, 1.5, 0]} color="#ffbd7a" intensity={6} distance={7} decay={2} castShadow={!low} />
-      </group>
+      {/* mushroom lamp, the reference's warm anchor for this corner */}
+      <MushroomLamp position={[-5.5, 0, 2.9]} scale={1.3} intensity={13} />
+      {!low && (
+        <pointLight position={[-5.3, 1.7, 2.9]} color="#ffbd7a" intensity={4} distance={7} decay={2} castShadow />
+      )}
     </group>
   )
 }
 
 export function Bookshelf() {
-  const poster = posterTexture()
+  const poster = artPlate('botanical')
   return (
     <group position={[1.7, 0, 4.12]}>
       <Prop name="bookshelf" height={2.0} position={[-0.7, 0, 0]} rotation={Math.PI} />
@@ -489,12 +495,12 @@ export function Bookshelf() {
         ))}
       </group>
       {/* wall art above */}
-      <mesh position={[0, 2.5, -0.19]}>
-        <planeGeometry args={[0.9, 1.2]} />
-        <meshStandardMaterial map={poster} roughness={0.85} />
+      <mesh position={[0, 2.45, -0.19]}>
+        <planeGeometry args={[0.78, 1.04]} />
+        <meshStandardMaterial map={poster} color="#b8ad9a" roughness={0.95} />
       </mesh>
-      <mesh position={[0, 2.5, -0.2]}>
-        <boxGeometry args={[0.98, 1.28, 0.02]} />
+      <mesh position={[0, 2.45, -0.2]}>
+        <boxGeometry args={[0.86, 1.12, 0.02]} />
         <meshStandardMaterial color="#c9a25a" metalness={0.8} roughness={0.35} />
       </mesh>
     </group>
