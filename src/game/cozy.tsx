@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { Soft } from './soft'
 import { fabricTexture, woodTexture } from './textures'
 import { useLowQuality } from './quality'
 
@@ -65,9 +66,7 @@ export function VelvetPit() {
   return (
     <group position={[-3.8, 0, 3.6]}>
       {/* plinth the pit is cut into */}
-      <mesh receiveShadow position={[0, 0.16, 0.12]} material={plinth}>
-        <boxGeometry args={[3.4, 0.32, 1.6]} />
-      </mesh>
+      <Soft args={[3.4, 0.32, 1.6]} radius={0.09} receiveShadow position={[0, 0.16, 0.12]} material={plinth} />
       <mesh receiveShadow position={[0, 0.33, -0.66]} material={plinth}>
         <boxGeometry args={[3.4, 0.02, 0.12]} />
       </mesh>
@@ -89,9 +88,11 @@ export function VelvetPit() {
       {/* scatter cushions */}
       {[
         [-0.86, 0.5, -0.34, 0.34, '#d8a24a'],
-        [0.9, 0.5, -0.3, 0.3, '#2f5f56'],
+        [0.9, 0.5, -0.3, 0.3, '#a8455f'],
         [-0.16, 0.46, -0.62, 0.26, '#e6d6bd'],
         [0.42, 0.44, 0.52, 0.28, '#8d2f52'],
+        [-0.52, 0.47, 0.44, 0.27, '#b4536f'],
+        [0.18, 0.52, -0.48, 0.24, '#caa06a'],
       ].map(([x, y, z, r, c], i) => (
         <mesh
           key={i}
@@ -99,16 +100,16 @@ export function VelvetPit() {
           receiveShadow
           position={[Number(x), Number(y), Number(z)]}
           rotation={[0.3 + i * 0.2, i * 0.9, 0.2]}
-          scale={[1, 0.62, 1]}
+          scale={[1.12, 0.66, 0.94]}
         >
-          <sphereGeometry args={[Number(r), low ? 10 : 14, low ? 8 : 10]} />
+          <sphereGeometry args={[Number(r), low ? 14 : 24, low ? 10 : 18]} />
           <meshStandardMaterial map={fabricTexture()} color={String(c)} roughness={0.95} />
         </mesh>
       ))}
 
       {/* satin throw spilling over the rim */}
       <mesh castShadow position={[1.02, 0.44, 0.26]} rotation={[0.5, -0.4, 0.3]} scale={[1, 0.5, 1.5]}>
-        <sphereGeometry args={[0.3, low ? 10 : 20, low ? 8 : 14]} />
+        <sphereGeometry args={[0.3, low ? 14 : 26, low ? 10 : 18]} />
         {low ? (
           <meshStandardMaterial color="#4d6f38" roughness={0.35} />
         ) : (
@@ -186,23 +187,13 @@ export function Wardrobe() {
   return (
     <group position={[-1.1, 0, 4.06]} rotation={[0, Math.PI, 0]}>
       {/* carcass */}
-      <mesh receiveShadow position={[0, 1.15, -0.16]} material={inner}>
-        <boxGeometry args={[1.86, 2.3, 0.06]} />
-      </mesh>
+      <Soft args={[1.86, 2.3, 0.06]} receiveShadow position={[0, 1.15, -0.16]} material={inner} />
       {[-0.96, 0.96].map((x) => (
-        <mesh key={x} castShadow receiveShadow position={[x, 1.15, 0.1]} material={walnut}>
-          <boxGeometry args={[0.07, 2.3, 0.58]} />
-        </mesh>
+        <Soft args={[0.07, 2.3, 0.58]} key={x} castShadow receiveShadow position={[x, 1.15, 0.1]} material={walnut} />
       ))}
-      <mesh castShadow receiveShadow position={[0, 2.32, 0.1]} material={walnut}>
-        <boxGeometry args={[2.0, 0.08, 0.62]} />
-      </mesh>
-      <mesh receiveShadow position={[0, 0.06, 0.1]} material={walnut}>
-        <boxGeometry args={[1.86, 0.12, 0.58]} />
-      </mesh>
-      <mesh receiveShadow position={[0, 1.02, 0.1]} material={walnut}>
-        <boxGeometry args={[1.86, 0.04, 0.56]} />
-      </mesh>
+      <Soft args={[2.0, 0.08, 0.62]} castShadow receiveShadow position={[0, 2.32, 0.1]} material={walnut} />
+      <Soft args={[1.86, 0.12, 0.58]} receiveShadow position={[0, 0.06, 0.1]} material={walnut} />
+      <Soft args={[1.86, 0.04, 0.56]} receiveShadow position={[0, 1.02, 0.1]} material={walnut} />
 
       {/* rail + hangers */}
       <mesh position={[0, 1.95, 0.06]} rotation={[0, 0, Math.PI / 2]}>
@@ -229,10 +220,9 @@ export function Wardrobe() {
 
       {/* folded stacks + shoes on the lower shelf */}
       {[0, 1, 2].map((i) => (
-        <mesh key={i} castShadow position={[-0.55 + i * 0.03, 0.2 + i * 0.09, 0.08]} rotation={[0, i * 0.08, 0]}>
-          <boxGeometry args={[0.46, 0.08, 0.34]} />
+        <Soft args={[0.46, 0.08, 0.34]} key={i} castShadow position={[-0.55 + i * 0.03, 0.2 + i * 0.09, 0.08]} rotation={[0, i * 0.08, 0]}>
           <meshStandardMaterial map={fabricTexture()} color={['#e3d5bd', '#8d2f52', '#3d5f57'][i]} roughness={0.95} />
-        </mesh>
+        </Soft>
       ))}
       {[0, 1].map((i) => (
         <mesh key={i} castShadow position={[0.3 + i * 0.26, 0.2, 0.1]} rotation={[0, 0.2 - i * 0.3, 0]}>
@@ -241,10 +231,9 @@ export function Wardrobe() {
         </mesh>
       ))}
       {/* warm strip light under the top shelf */}
-      <mesh position={[0, 2.22, 0.3]}>
-        <boxGeometry args={[1.6, 0.025, 0.025]} />
+      <Soft args={[1.6, 0.025, 0.025]} position={[0, 2.22, 0.3]}>
         <meshBasicMaterial color="#ffd9a8" toneMapped={false} />
-      </mesh>
+      </Soft>
       <pointLight position={[0, 2.05, 0.3]} color="#ffc287" intensity={low ? 3 : 4.5} distance={4} decay={2} />
     </group>
   )
@@ -266,9 +255,7 @@ export function WindowSeat() {
       </mesh>
       {/* slat fronts */}
       {Array.from({ length: 9 }, (_, i) => (
-        <mesh key={i} position={[-1.8 + i * 0.45, 0.17, 0.27]} material={walnut}>
-          <boxGeometry args={[0.36, 0.26, 0.02]} />
-        </mesh>
+        <Soft args={[0.36, 0.26, 0.02]} key={i} position={[-1.8 + i * 0.45, 0.17, 0.27]} material={walnut} />
       ))}
       {/* top with a rounded lip */}
       <mesh castShadow receiveShadow position={[0, 0.4, 0]} material={walnut}>
@@ -278,9 +265,7 @@ export function WindowSeat() {
         <cylinderGeometry args={[0.04, 0.04, 4.3, 12]} />
       </mesh>
       {/* sitting pad at the open end, away from the planters */}
-      <mesh castShadow receiveShadow position={[1.75, 0.48, 0.02]} material={pad}>
-        <boxGeometry args={[0.72, 0.1, 0.56]} />
-      </mesh>
+      <Soft args={[0.72, 0.1, 0.56]} castShadow receiveShadow position={[1.75, 0.48, 0.02]} material={pad} />
       <mesh castShadow position={[1.75, 0.58, -0.2]} rotation={[0.4, 0, 0]} scale={[1, 0.6, 1]}>
         <sphereGeometry args={[0.2, 14, 10]} />
         <meshStandardMaterial map={fabricTexture()} color="#8d2f52" roughness={0.95} />
@@ -288,10 +273,9 @@ export function WindowSeat() {
       {/* stacked books and a mug at the far end */}
       <group position={[-1.95, 0.46, 0.02]}>
         {[0, 1, 2].map((i) => (
-          <mesh key={i} castShadow position={[0, i * 0.045, 0]} rotation={[0, i * 0.18, 0]}>
-            <boxGeometry args={[0.28, 0.042, 0.2]} />
+          <Soft args={[0.28, 0.042, 0.2]} key={i} castShadow position={[0, i * 0.045, 0]} rotation={[0, i * 0.18, 0]}>
             <meshStandardMaterial color={['#37536b', '#96603a', '#5d3a5a'][i]} roughness={0.9} />
-          </mesh>
+          </Soft>
         ))}
       </group>
     </group>

@@ -89,7 +89,9 @@ export const DEFAULT_SETTINGS: Settings = {
   track: 'rhodes',
 }
 
-export const SPAWN: [number, number] = [0.6, 1.3]
+/** Standing on the rug, angled into the velvet pit so the opening frame is the lounge. */
+export const SPAWN: [number, number] = [-1.35, 1.55]
+export const SPAWN_FACING = 2.3
 
 interface GameState {
   phase: Phase
@@ -226,13 +228,13 @@ export const useGame = create<GameState>((set, get) => ({
   unreadChats: 0,
   gifted: [],
   pantry: [],
-  respawn: { at: SPAWN, facing: 0, nonce: 0 },
+  respawn: { at: SPAWN, facing: SPAWN_FACING, nonce: 0 },
   bridgeDeployedAt: null,
   codeAttempts: 0,
   cityGlitch: 0,
   settings: booted?.settings ?? DEFAULT_SETTINGS,
   lastPosition: SPAWN,
-  lastFacing: 0,
+  lastFacing: SPAWN_FACING,
 
   setPhase: (phase) => set({ phase }),
   setOverlay: (overlay) => set({ overlay }),
@@ -255,7 +257,7 @@ export const useGame = create<GameState>((set, get) => ({
       gifted: [],
       pantry: [],
       notifs: [],
-      respawn: { at: SPAWN, facing: 0, nonce: s.respawn.nonce + 1 },
+      respawn: { at: SPAWN, facing: SPAWN_FACING, nonce: s.respawn.nonce + 1 },
     })),
 
   continueSave: () => {
@@ -308,7 +310,7 @@ export const useGame = create<GameState>((set, get) => ({
       gifted: [],
       pantry: [],
       notifs: [],
-      respawn: { at: SPAWN, facing: 0, nonce: s.respawn.nonce + 1 },
+      respawn: { at: SPAWN, facing: SPAWN_FACING, nonce: s.respawn.nonce + 1 },
     }))
   },
 

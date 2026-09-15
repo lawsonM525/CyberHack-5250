@@ -423,6 +423,8 @@ function Hud() {
   const setSettings = useGame((s) => s.setSettings)
   const focus = useUi((s) => s.focus)
   const fps = useUi((s) => s.fps)
+  const render = useUi((s) => s.render)
+  const quality = useGame((s) => s.settings.quality)
   const [tipVisible, setTipVisible] = useState(true)
   const focusRef = useRef(focus)
   focusRef.current = focus
@@ -539,7 +541,12 @@ function Hud() {
         </button>
       </div>
 
-      <div className="fps">{fps ? `${fps} fps` : ''}</div>
+      <div className="fps">
+        {fps ? `${fps} fps` : ''}
+        {fps && render
+          ? ` · ${quality} · ${render.width}×${render.height}${render.samples > 1 ? ` msaa${render.samples}` : ''}`
+          : ''}
+      </div>
 
       <Wallet />
       <NotifStack />

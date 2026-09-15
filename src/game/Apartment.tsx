@@ -194,7 +194,8 @@ export function Apartment({
         <meshStandardMaterial map={rug} color="#8a5f52" roughness={0.99} />
       </mesh>
 
-      {/* gallery wall, south side above the lounge */}
+      {/* gallery wall, south side above the lounge. The original two pieces keep
+          their exact places; the rest of the salon hang grows around them. */}
       <group position={[0, 0, ROOM.z1 - 0.02]} rotation={[0, Math.PI, 0]}>
         <group position={[2.9, 1.95, 0]}>
           <Framed map={artPlate('portrait')} width={0.86} height={1.29} lit={!low} />
@@ -202,11 +203,33 @@ export function Apartment({
         <group position={[4.15, 1.62, 0]}>
           <Framed map={artPlate('botanical')} width={0.62} height={0.93} frame="#6d5b44" />
         </group>
+        <group position={[1.62, 2.02, 0]}>
+          <Framed map={artPlate('muse')} width={0.7} height={0.93} />
+        </group>
+        <group position={[1.6, 1.24, 0]}>
+          <Framed map={artPlate('orchid')} width={0.5} height={0.5} frame="#8d6a44" />
+        </group>
+        <group position={[4.2, 2.42, 0]}>
+          <Framed map={artPlate('velvet')} width={0.74} height={0.55} frame="#c08a6a" />
+        </group>
       </group>
 
       {/* landscape print on the west wall over the desk */}
       <group position={[ROOM.x0 + 0.02, 2.12, -1.9]} rotation={[0, Math.PI / 2, 0]}>
         <Framed map={artPlate('city')} width={1.5} height={1.0} lit={!low} frame="#3a3f48" />
+      </group>
+
+      {/* silk study on the east wall, the first thing she faces walking in */}
+      <group position={[ROOM.x1 - 0.02, 1.9, -2.2]} rotation={[0, -Math.PI / 2, 0]}>
+        <Framed map={artPlate('silk')} width={0.78} height={1.04} lit={!low} />
+      </group>
+      {/* velvet abstract over the vanity, east wall */}
+      <group position={[ROOM.x1 - 0.02, 2.05, 1.5]} rotation={[0, -Math.PI / 2, 0]}>
+        <Framed map={artPlate('velvet')} width={1.1} height={0.82} frame="#b98a52" />
+      </group>
+      {/* orchid study by the kitchenette */}
+      <group position={[ROOM.x1 - 0.02, 1.62, 4.05]} rotation={[0, -Math.PI / 2, 0]}>
+        <Framed map={artPlate('orchid')} width={0.6} height={0.6} frame="#6d5b44" />
       </group>
 
       {/* wall art, west wall */}

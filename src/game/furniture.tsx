@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { Soft } from './soft'
 import { fabricTexture, woodTexture } from './textures'
 import { artPlate } from './assets'
 import { Prop } from './props'
@@ -115,10 +116,9 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
     <group position={[-4.12, 0, -3.92]}>
       {/* top */}
       {/* walnut top with a rounded front lip */}
-      <mesh castShadow receiveShadow position={[0, 0.74, 0]}>
-        <boxGeometry args={[2.85, 0.06, 0.92]} />
+      <Soft args={[2.85, 0.06, 0.92]} castShadow receiveShadow position={[0, 0.74, 0]}>
         <meshStandardMaterial map={topTex} color="#9a7147" roughness={0.45} metalness={0.05} />
-      </mesh>
+      </Soft>
       <mesh position={[0, 0.74, 0.46]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.032, 0.032, 2.85, 12]} />
         <meshStandardMaterial map={topTex} color="#9a7147" roughness={0.45} />
@@ -126,23 +126,20 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
       {/* frame */}
       {[-1.35, 1.35].map((x) => (
         <group key={x}>
-          <mesh castShadow position={[x, 0.37, 0]}>
-            <boxGeometry args={[0.06, 0.74, 0.8]} />
+          <Soft args={[0.06, 0.74, 0.8]} castShadow position={[x, 0.37, 0]}>
             <meshStandardMaterial color="#8a6a3a" roughness={0.32} metalness={0.85} />
-          </mesh>
+          </Soft>
         </group>
       ))}
-      <mesh position={[0, 0.2, -0.3]}>
-        <boxGeometry args={[2.6, 0.04, 0.04]} />
+      <Soft args={[2.6, 0.04, 0.04]} position={[0, 0.2, -0.3]}>
         <meshStandardMaterial color="#2b2f36" roughness={0.35} metalness={0.8} />
-      </mesh>
+      </Soft>
 
       {/* main screen, facing into the room (+z) */}
       <group position={[0, 1.08, -0.3]}>
-        <mesh castShadow>
-          <boxGeometry args={[1.32, 0.56, 0.035]} />
+        <Soft args={[1.32, 0.56, 0.035]} castShadow>
           <meshStandardMaterial color="#14161c" roughness={0.4} metalness={0.5} />
-        </mesh>
+        </Soft>
         <mesh position={[0, 0, 0.02]}>
           <planeGeometry args={[1.26, 0.5]} />
           <meshBasicMaterial map={screen} toneMapped={false} />
@@ -151,19 +148,17 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
           <cylinderGeometry args={[0.03, 0.03, 0.16, 10]} />
           <meshStandardMaterial color="#2b2f36" metalness={0.8} roughness={0.3} />
         </mesh>
-        <mesh position={[0, -0.44, 0.06]}>
-          <boxGeometry args={[0.34, 0.02, 0.2]} />
+        <Soft args={[0.34, 0.02, 0.2]} position={[0, -0.44, 0.06]}>
           <meshStandardMaterial color="#2b2f36" metalness={0.8} roughness={0.3} />
-        </mesh>
+        </Soft>
       </group>
 
       {/* flanking displays, angled inward */}
       {([-1, 1] as const).map((s) => (
         <group key={s} position={[s * 0.98, 0.98, -0.2]} rotation={[0, -s * 0.5, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.52, 0.34, 0.03]} />
+          <Soft args={[0.52, 0.34, 0.03]} castShadow>
             <meshStandardMaterial color="#14161c" roughness={0.4} metalness={0.5} />
-          </mesh>
+          </Soft>
           <mesh position={[0, 0, 0.018]}>
             <planeGeometry args={[0.48, 0.3]} />
             <meshBasicMaterial color={s < 0 ? '#1c4a52' : '#3a1f44'} toneMapped={false} />
@@ -186,10 +181,9 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
 
       {/* keyboard */}
       <group position={[0, 0.78, 0.18]} rotation={[-0.06, 0, 0]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.66, 0.025, 0.21]} />
+        <Soft args={[0.66, 0.025, 0.21]} castShadow>
           <meshStandardMaterial color="#20232b" roughness={0.5} metalness={0.3} />
-        </mesh>
+        </Soft>
         {Array.from({ length: 4 }, (_, r) =>
           Array.from({ length: 13 }, (_, c) => (
             <mesh key={`${r}-${c}`} position={[-0.3 + c * 0.05, 0.02, -0.07 + r * 0.045]}>
@@ -261,10 +255,9 @@ export function Chair() {
         <cylinderGeometry args={[0.24, 0.26, 0.09, 18]} />
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />
       </mesh>
-      <mesh castShadow position={[0, 0.74, -0.22]} rotation={[0.16, 0, 0]}>
-        <boxGeometry args={[0.42, 0.5, 0.07]} />
+      <Soft args={[0.42, 0.5, 0.07]} castShadow position={[0, 0.74, -0.22]} rotation={[0.16, 0, 0]}>
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />
-      </mesh>
+      </Soft>
       <mesh position={[0, 0.25, 0]}>
         <cylinderGeometry args={[0.035, 0.035, 0.36, 10]} />
         <meshStandardMaterial color="#26292f" metalness={0.8} roughness={0.3} />
@@ -272,10 +265,9 @@ export function Chair() {
       {Array.from({ length: 5 }, (_, i) => {
         const a = (i / 5) * Math.PI * 2
         return (
-          <mesh key={i} position={[Math.cos(a) * 0.16, 0.06, Math.sin(a) * 0.16]} rotation={[0, -a, 0]}>
-            <boxGeometry args={[0.3, 0.03, 0.05]} />
+          <Soft args={[0.3, 0.03, 0.05]} key={i} position={[Math.cos(a) * 0.16, 0.06, Math.sin(a) * 0.16]} rotation={[0, -a, 0]}>
             <meshStandardMaterial color="#26292f" metalness={0.8} roughness={0.3} />
-          </mesh>
+          </Soft>
         )
       })}
     </group>
@@ -288,25 +280,21 @@ export function Vanity() {
   return (
     <group position={[5.45, 0, 0.1]} rotation={[0, -Math.PI / 2, 0]}>
       {/* table */}
-      <mesh castShadow receiveShadow position={[0, 0.72, 0]}>
-        <boxGeometry args={[2.3, 0.07, 0.62]} />
+      <Soft args={[2.3, 0.07, 0.62]} castShadow receiveShadow position={[0, 0.72, 0]}>
         <meshStandardMaterial map={tex} roughness={0.42} />
-      </mesh>
+      </Soft>
       {[-1.05, 1.05].map((x) => (
-        <mesh key={x} castShadow position={[x, 0.36, 0]}>
-          <boxGeometry args={[0.08, 0.72, 0.5]} />
+        <Soft args={[0.08, 0.72, 0.5]} key={x} castShadow position={[x, 0.36, 0]}>
           <meshStandardMaterial map={tex} roughness={0.5} />
-        </mesh>
+        </Soft>
       ))}
       {/* drawers */}
-      <mesh position={[0.6, 0.55, 0.02]}>
-        <boxGeometry args={[0.7, 0.28, 0.54]} />
+      <Soft args={[0.7, 0.28, 0.54]} position={[0.6, 0.55, 0.02]}>
         <meshStandardMaterial map={tex} roughness={0.5} />
-      </mesh>
-      <mesh position={[0.6, 0.55, 0.3]}>
-        <boxGeometry args={[0.62, 0.02, 0.02]} />
+      </Soft>
+      <Soft args={[0.62, 0.02, 0.02]} position={[0.6, 0.55, 0.3]}>
         <meshStandardMaterial color="#e8b765" metalness={0.9} roughness={0.25} />
-      </mesh>
+      </Soft>
 
       {/* mirror */}
       <group position={[-0.25, 1.5, -0.24]}>
@@ -392,8 +380,7 @@ export function Lounge() {
 
       {/* coffee table */}
       <group position={[-3.9, 0, 1.95]}>
-        <mesh castShadow receiveShadow position={[0, 0.36, 0]}>
-          <boxGeometry args={[1.4, 0.05, 0.85]} />
+        <Soft args={[1.4, 0.05, 0.85]} castShadow receiveShadow position={[0, 0.36, 0]}>
           {/* transmission costs a whole extra scene pass; the low tier fakes it */}
           {low ? (
             <meshStandardMaterial color="#20323a" roughness={0.12} metalness={0.1} transparent opacity={0.6} />
@@ -408,7 +395,7 @@ export function Lounge() {
               opacity={0.85}
             />
           )}
-        </mesh>
+        </Soft>
         {[
           [-0.6, -0.32],
           [0.6, -0.32],
@@ -430,14 +417,12 @@ export function Lounge() {
           {!low && <pointLight position={[0, 0.24, 0]} color="#ff9a4a" intensity={0.4} distance={1.2} decay={2} />}
         </group>
         {/* books + bowl */}
-        <mesh castShadow position={[-0.42, 0.41, 0.06]} rotation={[0, 0.2, 0]}>
-          <boxGeometry args={[0.3, 0.05, 0.22]} />
+        <Soft args={[0.3, 0.05, 0.22]} castShadow position={[-0.42, 0.41, 0.06]} rotation={[0, 0.2, 0]}>
           <meshStandardMaterial color="#3a5a6a" roughness={0.85} />
-        </mesh>
-        <mesh castShadow position={[-0.42, 0.46, 0.04]} rotation={[0, -0.1, 0]}>
-          <boxGeometry args={[0.28, 0.04, 0.2]} />
+        </Soft>
+        <Soft args={[0.28, 0.04, 0.2]} castShadow position={[-0.42, 0.46, 0.04]} rotation={[0, -0.1, 0]}>
           <meshStandardMaterial color="#8a3a4a" roughness={0.85} />
-        </mesh>
+        </Soft>
         <mesh castShadow position={[0.48, 0.42, -0.06]}>
           <sphereGeometry args={[0.1, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial color="#2f4a44" roughness={0.4} side={THREE.DoubleSide} />
@@ -473,10 +458,9 @@ export function Bookshelf() {
       <Prop name="monstera" height={1.15} position={[1.35, 0, -0.1]} />
       {/* framed photograph */}
       <group position={[-0.7, 1.55, 0.1]} rotation={[0, 0.12, 0]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.3, 0.24, 0.02]} />
+        <Soft args={[0.3, 0.24, 0.02]} castShadow>
           <meshStandardMaterial color="#c9a25a" metalness={0.85} roughness={0.3} />
-        </mesh>
+        </Soft>
         <mesh position={[0, 0, 0.012]}>
           <planeGeometry args={[0.25, 0.19]} />
           <meshStandardMaterial color="#5a3f52" roughness={0.6} />
@@ -493,10 +477,9 @@ export function Bookshelf() {
       {/* leaning stack of books */}
       <group position={[0.6, 1.5, 0.12]}>
         {[0, 1, 2].map((i) => (
-          <mesh key={i} castShadow position={[0, i * 0.05, 0]} rotation={[0, i * 0.2, 0]}>
-            <boxGeometry args={[0.26, 0.045, 0.2]} />
+          <Soft args={[0.26, 0.045, 0.2]} key={i} castShadow position={[0, i * 0.05, 0]} rotation={[0, i * 0.2, 0]}>
             <meshStandardMaterial color={['#2f4a64', '#8a6a3a', '#5a3a5a'][i]} roughness={0.85} />
-          </mesh>
+          </Soft>
         ))}
       </group>
       {/* wall art above */}
@@ -504,10 +487,9 @@ export function Bookshelf() {
         <planeGeometry args={[0.78, 1.04]} />
         <meshStandardMaterial map={poster} color="#b8ad9a" roughness={0.95} />
       </mesh>
-      <mesh position={[0, 2.45, -0.2]}>
-        <boxGeometry args={[0.86, 1.12, 0.02]} />
+      <Soft args={[0.86, 1.12, 0.02]} position={[0, 2.45, -0.2]}>
         <meshStandardMaterial color="#c9a25a" metalness={0.8} roughness={0.35} />
-      </mesh>
+      </Soft>
     </group>
   )
 }
@@ -520,16 +502,14 @@ export function RecordConsole() {
   })
   return (
     <group position={[4.05, 0, 4.12]}>
-      <mesh castShadow receiveShadow position={[0, 0.34, 0]}>
-        <boxGeometry args={[1.4, 0.68, 0.44]} />
+      <Soft args={[1.4, 0.68, 0.44]} castShadow receiveShadow position={[0, 0.34, 0]}>
         <meshStandardMaterial map={tex} roughness={0.55} />
-      </mesh>
+      </Soft>
       {/* turntable */}
       <group position={[0.15, 0.72, 0]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.5, 0.06, 0.38]} />
+        <Soft args={[0.5, 0.06, 0.38]} castShadow>
           <meshStandardMaterial color="#20232b" roughness={0.45} metalness={0.4} />
-        </mesh>
+        </Soft>
         <mesh ref={disc} position={[-0.04, 0.045, 0]}>
           <cylinderGeometry args={[0.15, 0.15, 0.012, 32]} />
           <meshStandardMaterial color="#111116" roughness={0.35} />
@@ -579,14 +559,12 @@ export function Kitchenette() {
   const tex = useWood(1.2)
   return (
     <group position={[5.45, 0, 2.9]} rotation={[0, -Math.PI / 2, 0]}>
-      <mesh castShadow receiveShadow position={[0, 0.45, 0]}>
-        <boxGeometry args={[1.5, 0.9, 0.6]} />
+      <Soft args={[1.5, 0.9, 0.6]} castShadow receiveShadow position={[0, 0.45, 0]}>
         <meshStandardMaterial map={tex} roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 0.92, 0]}>
-        <boxGeometry args={[1.56, 0.05, 0.64]} />
+      </Soft>
+      <Soft args={[1.56, 0.05, 0.64]} position={[0, 0.92, 0]}>
         <meshStandardMaterial color="#2c3138" roughness={0.3} metalness={0.5} />
-      </mesh>
+      </Soft>
       <mesh castShadow position={[-0.45, 1.05, 0]}>
         <cylinderGeometry args={[0.09, 0.11, 0.2, 16]} />
         <meshStandardMaterial color="#b0b6bd" metalness={0.9} roughness={0.22} />
@@ -597,10 +575,9 @@ export function Kitchenette() {
           <meshStandardMaterial color={['#d9c7a8', '#7a9a8a', '#c2447a'][i]} roughness={0.6} />
         </mesh>
       ))}
-      <mesh position={[0, 1.7, -0.22]}>
-        <boxGeometry args={[1.3, 0.04, 0.24]} />
+      <Soft args={[1.3, 0.04, 0.24]} position={[0, 1.7, -0.22]}>
         <meshStandardMaterial map={tex} roughness={0.6} />
-      </mesh>
+      </Soft>
       {[0, 1, 2, 3].map((i) => (
         <mesh key={i} castShadow position={[-0.5 + i * 0.3, 1.82, -0.22]}>
           <cylinderGeometry args={[0.055, 0.055, 0.2, 14]} />
@@ -621,10 +598,9 @@ export function NightHatch() {
   return (
     <group>
       <group position={[5.94, 1.62, 2.9]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh>
-          <boxGeometry args={[1.1, 0.72, 0.06]} />
+        <Soft args={[1.1, 0.72, 0.06]}>
           <meshStandardMaterial color="#2a1c18" roughness={0.75} />
-        </mesh>
+        </Soft>
         <mesh position={[0, 0, 0.04]}>
           <planeGeometry args={[0.96, 0.58]} />
           <meshStandardMaterial
@@ -634,10 +610,9 @@ export function NightHatch() {
             roughness={0.9}
           />
         </mesh>
-        <mesh position={[0, 0.47, 0.02]}>
-          <boxGeometry args={[0.84, 0.14, 0.04]} />
+        <Soft args={[0.84, 0.14, 0.04]} position={[0, 0.47, 0.02]}>
           <meshStandardMaterial color="#ff8bbd" emissive="#ff5fa2" emissiveIntensity={1.7} roughness={0.5} />
-        </mesh>
+        </Soft>
         {!low && <pointLight position={[0, 0, 0.5]} color="#ffb877" intensity={5} distance={4} decay={2} />}
       </group>
       {pantry.slice(0, 4).map((id, i) => (

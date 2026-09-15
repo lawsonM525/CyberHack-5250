@@ -118,15 +118,15 @@ export function Scene({ paused }: { paused: boolean }) {
   }, [setFocus])
 
   const bootCamera = useMemo<[number, number, number]>(() => {
-    const [x, z] = useGame.getState().respawn.at
-    return [x, 1.75, z + 2.9]
+    const { at, facing } = useGame.getState().respawn
+    return [at[0] + Math.sin(facing) * 2.9, 1.75, at[1] + Math.cos(facing) * 2.9]
   }, [])
 
   return (
     <Canvas
       shadows={quality !== 'low'}
-      dpr={quality === 'high' ? [1, 1.75] : quality === 'medium' ? [1, 1.25] : 0.45}
-      gl={{ antialias: quality !== 'low', powerPreference: 'high-performance' }}
+      dpr={quality === 'high' ? [1, 1.75] : quality === 'medium' ? [1, 1.25] : 0.8}
+      gl={{ antialias: true, powerPreference: 'high-performance' }}
       // seated where the boom will be, so the first frames are already the
       // gameplay view even while the heroine is still loading
       camera={{ fov: 52, near: 0.1, far: 500, position: bootCamera }}
@@ -164,7 +164,21 @@ function Grade({ quality }: { quality: 'low' | 'medium' | 'high' }) {
 
 function FpsProbe() {
   const setFps = useUi((s) => s.setFps)
+  const setRenderInfo = useUi((s) => s.setRenderInfo)
+  const { gl, size } = useThree()
   const acc = useRef({ t: 0, n: 0 })
+
+  useEffect(() => {
+    const ctx = gl.getContext()
+    setRenderInfo({
+      width: ctx.drawingBufferWidth,
+      height: ctx.drawingBufferHeight,
+      cssWidth: size.width,
+      cssHeight: size.height,
+      samples: ctx.getParameter(ctx.SAMPLES) as number,
+    })
+  }, [gl, size.width, size.height, setRenderInfo])
+
   useFrame((_, d) => {
     acc.current.t += d
     acc.current.n += 1
