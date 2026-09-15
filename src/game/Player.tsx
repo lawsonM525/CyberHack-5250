@@ -156,53 +156,50 @@ export function Player({
 
     // third person camera with wall-aware distance
     const pivot = new THREE.Vector3(pos.current.x, HEAD, pos.current.y)
-    const dirX = Math.sin(camYaw.current) * Math.cos(camPitch.current)
-    const dirZ = Math.cos(camYaw.current) * Math.cos(camPitch.current)
     const dirY = Math.sin(camPitch.current)
-    // march out from her head and stop at the first obstruction, so the boom
-    // can never end up on the far side of a desk or doorframe
-    let dist = MIN_DIST
-    const STEPS = 14
-    for (let i = 1; i <= STEPS; i++) {
-      const d = (DIST * i) / STEPS
-      if (cameraBlocked(pivot.x + dirX * d, pivot.z + dirZ * d)) break
-      dist = Math.max(MIN_DIST, d - 0.14)
+
+    /** How far the boom can run down a heading before it reaches solid mass. */
+    const clearance = (yaw: number): number => {
+      const sx = Math.sin(yaw)
+      const sz = Math.cos(yaw)
+      let clear = 0
+      for (let d = 0.35; d <= DIST + 1e-6; d += 0.15) {
+        if (cameraBlocked(pivot.x + sx * d, pivot.z + sz * d)) break
+        clear = d
+      }
+      return clear
     }
-    if (dist <= MIN_DIST && cameraBlocked(pivot.x + dirX * MIN_DIST, pivot.z + dirZ * MIN_DIST)) {
-      // pinned against something: hug her shoulder rather than sit in the wall
-      dist = 0.6
+
+    // her heading first; if the wall behind her leaves no room for a shoulder
+    // boom, swing to the nearest heading that does rather than sink into it
+    let yaw = camYaw.current
+    let room = clearance(yaw)
+    if (room < 1.0) {
+      let bestYaw = yaw
+      let bestRoom = room
+      for (let i = 1; i <= 12; i++) {
+        const off = ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * Math.PI) / 6
+        const candidate = camYaw.current + off
+        const r = clearance(candidate)
+        if (r > bestRoom) {
+          bestYaw = candidate
+          bestRoom = r
+          if (r >= MIN_DIST) break
+        }
+      }
+      yaw = bestYaw
+      room = bestRoom
     }
+    const dirX = Math.sin(yaw) * Math.cos(camPitch.current)
+    const dirZ = Math.cos(yaw) * Math.cos(camPitch.current)
+    // no heading has any air in it: ride above her and look down instead
+    const boxedIn = room <= 0
+    const dist = Math.min(DIST, Math.max(0.5, room - 0.14))
     // the shorter the boom gets, the higher it rides and the lower it aims, so a
     // wall behind her crops the frame instead of her
     const pinch = 1 - THREE.MathUtils.clamp((dist - 0.6) / (DIST - 0.6), 0, 1)
-    // standing in a doorway or against a pier, every direction is blocked and a
-    // shoulder boom just buries the lens in plaster: look down over the wall
-    const boxedIn = cameraBlocked(pivot.x, pivot.z)
-    // swing to the nearest direction with air in it; straight up if there is none,
-    // so the lens never ends up inside the mass she is standing in
-    let escX = dirX
-    let escZ = dirZ
-    let escRadius = 0
-    if (boxedIn) {
-      for (let i = 0; i <= 12; i++) {
-        const off = ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * Math.PI) / 6
-        const y = camYaw.current + off
-        const sx = Math.sin(y)
-        const sz = Math.cos(y)
-        if (!cameraBlocked(pivot.x + sx * 1.05, pivot.z + sz * 1.05)) {
-          escX = sx
-          escZ = sz
-          escRadius = 1.05
-          break
-        }
-      }
-    }
     const desired = boxedIn
-      ? new THREE.Vector3(
-          pivot.x + escX * escRadius,
-          pivot.y + (escRadius > 0 ? 0.85 : 1.5),
-          pivot.z + escZ * escRadius,
-        )
+      ? new THREE.Vector3(pivot.x, pivot.y + 1.5, pivot.z)
       : new THREE.Vector3(
           pivot.x + dirX * dist,
           Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),

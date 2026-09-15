@@ -52,6 +52,7 @@ export const BLOCKERS: Rect[] = [
   rect(4.4, -4.78, 5.15, -4.5), // north wall pier, east of the balcony door
   rect(1.75, -6.65, 1.95, -4.55), // balcony railing (west)
   rect(4.85, -6.65, 5.05, -4.55), // balcony railing (east)
+  rect(4.95, -18.55, 5.35, -18.15), // Kingsley planter and its palm
 ]
 
 /** The railing segment that retracts when the span deploys. */
@@ -137,12 +138,25 @@ const CAMERA_PROPS: Rect[] = [
   rect(-5.75, -1.55, -5.05, -0.75), // tall monstera pot
 ]
 
+/**
+ * Open air the boom must not drift into. The Kingsley deck is barely wider than
+ * she is, so these get a hairline skin: a body's width would pin the boom
+ * against her the moment she walks to either rail.
+ */
+const CAMERA_LEDGES: Rect[] = [
+  rect(-14, -19.1, 1.85, -16.3), // west of the Kingsley deck
+  rect(5.55, -19.1, 14, -16.3), // east of the Kingsley deck
+]
+
 /** Keeps the boom a body's width off any wall, so it never grazes through one. */
 const CAMERA_SKIN = 0.45
 
 export function cameraBlocked(x: number, z: number): boolean {
   for (const w of CAMERA_WALLS) {
     if (inside(w, x, z, CAMERA_SKIN)) return true
+  }
+  for (const l of CAMERA_LEDGES) {
+    if (inside(l, x, z, 0.06)) return true
   }
   for (const p of CAMERA_PROPS) {
     if (inside(p, x, z, 0.22)) return true
