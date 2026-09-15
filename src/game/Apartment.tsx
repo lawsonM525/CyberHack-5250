@@ -260,16 +260,16 @@ export function Apartment({
       <Jasmine position={[-3.4, 2.5, -4.0]} scale={1.5} />
       <Planter position={[-5.5, 0, 0.2]} radius={0.24} height={0.34} color="#9c5a3c" />
       <Fern position={[-5.5, 0.34, 0.2]} scale={1.1} />
-      <Planter position={[-5.35, 0, -2.5]} radius={0.3} height={0.5} color="#cdbba0" />
-      <Monstera position={[-5.35, 0.52, -2.5]} scale={1.45} />
-      <Planter position={[2.3, 0, -3.4]} radius={0.27} height={0.44} color="#6f7a72" />
-      <CornerPalm position={[2.3, 0.44, -3.4]} scale={0.85} />
+      <Planter position={[-5.4, 0, -1.15]} radius={0.3} height={0.5} color="#cdbba0" />
+      <Monstera position={[-5.4, 0.52, -1.15]} scale={1.45} />
+      <Planter position={[2.5, 0, -3.4]} radius={0.27} height={0.44} color="#6f7a72" />
+      <CornerPalm position={[2.5, 0.44, -3.4]} scale={0.85} />
 
       {/* soft furnishings in the open floor the opening camera looks across */}
       <Pouf position={[-1.6, 0, -1.5]} color="#8a5a3c" radius={0.38} />
       <Pouf position={[1.75, 0, -0.9]} color="#5c4a60" radius={0.32} />
       <SideTable position={[0.35, 0, -2.3]} />
-      <MushroomLamp position={[-2.55, 0.0, -3.35]} scale={1.15} intensity={11} />
+      <MushroomLamp position={[-2.46, 0.0, -4.0]} scale={1.15} intensity={11} />
       <Wardrobe />
       <Curtains low={low} />
 

@@ -55,7 +55,7 @@ export function VelvetPit() {
   const velvet = useVelvet('#5c1230')
   const velvetLight = useVelvet('#7d1f42')
   const plinth = useLinen('#4a3b34', 3)
-  const seg = low ? 20 : 40
+  const seg = low ? 18 : 28
 
   return (
     <group position={[-3.8, 0, 3.6]}>
@@ -74,11 +74,11 @@ export function VelvetPit() {
 
       {/* curved bolster around the back half of the well */}
       <mesh castShadow receiveShadow position={[0, 0.36, 0.1]} rotation={[Math.PI / 2, 0, 0]} material={velvet}>
-        <torusGeometry args={[1.2, 0.3, low ? 8 : 16, seg, Math.PI * 1.35]} />
+        <torusGeometry args={[1.2, 0.3, low ? 8 : 12, seg, Math.PI * 1.35]} />
       </mesh>
       {/* seat pad ring, slightly lighter so the curve reads */}
       <mesh castShadow receiveShadow position={[0, 0.26, 0.1]} rotation={[Math.PI / 2, 0, 0]} material={velvetLight}>
-        <torusGeometry args={[0.86, 0.2, low ? 8 : 14, seg, Math.PI * 2]} />
+        <torusGeometry args={[0.86, 0.2, low ? 8 : 10, seg, Math.PI * 2]} />
       </mesh>
 
       {/* scatter cushions */}
@@ -96,7 +96,7 @@ export function VelvetPit() {
           rotation={[0.3 + i * 0.2, i * 0.9, 0.2]}
           scale={[1, 0.62, 1]}
         >
-          <sphereGeometry args={[Number(r), low ? 10 : 18, low ? 8 : 14]} />
+          <sphereGeometry args={[Number(r), low ? 10 : 14, low ? 8 : 10]} />
           <meshStandardMaterial map={fabricTexture()} color={String(c)} roughness={0.95} />
         </mesh>
       ))}

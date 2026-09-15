@@ -442,7 +442,7 @@ export function Lounge() {
       {/* floor cushions */}
       {[
         [-2.4, 1.3, 0.3],
-        [-5.0, 1.1, -0.4],
+        [-5.1, 0.95, -0.4],
       ].map(([x, z, r], i) => (
         <mesh key={i} castShadow receiveShadow position={[x, 0.11, z]} rotation={[0, r, 0]} scale={[1, 0.55, 1]}>
           <sphereGeometry args={[0.32, 18, 14]} />
@@ -453,7 +453,7 @@ export function Lounge() {
       {/* mushroom lamp, the reference's warm anchor for this corner */}
       <MushroomLamp position={[-5.5, 0, 2.9]} scale={1.3} intensity={13} />
       {!low && (
-        <pointLight position={[-5.3, 1.7, 2.9]} color="#ffbd7a" intensity={4} distance={7} decay={2} castShadow />
+        <pointLight position={[-5.3, 1.7, 2.9]} color="#ffbd7a" intensity={4} distance={7} decay={2} />
       )}
     </group>
   )

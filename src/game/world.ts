@@ -27,7 +27,7 @@ export const BLOCKERS: Rect[] = [
   rect(-5.55, -4.4, -2.7, -3.45), // desk
   rect(-4.45, -3.45, -3.35, -2.55), // desk chair
   rect(-2.25, -4.4, 1.95, -3.6), // window garden planters
-  rect(-5.45, 3.05, -2.15, 4.4), // sofa
+  rect(-5.45, 2.85, -2.15, 4.4), // sunken velvet lounge, plinth included
   rect(-4.65, 1.45, -3.15, 2.45), // coffee table
   rect(-5.9, 2.55, -5.2, 3.25), // floor lamp
   rect(0.45, 3.85, 2.95, 4.4), // bookshelf
@@ -37,12 +37,14 @@ export const BLOCKERS: Rect[] = [
   rect(4.95, 2.15, 5.9, 3.65), // kitchenette counter
   rect(5.15, -3.25, 5.9, -2.35), // corner palm
   rect(-2.1, 3.7, -0.1, 4.4), // open wardrobe
-  rect(-2.95, -3.75, -2.15, -2.95), // mushroom lamp by the window
+  rect(-2.7, -4.4, -2.2, -3.6), // mushroom lamp, tucked between desk and planters
   rect(0.03, -2.62, 0.67, -1.98), // side table
+  rect(-2.72, 0.98, -2.08, 1.62), // floor cushion by the lounge
+  rect(-5.42, 0.63, -4.78, 1.27), // floor cushion by the west wall
   rect(-2.0, -1.9, -1.2, -1.1), // pouf (west)
   rect(1.41, -1.26, 2.09, -0.54), // pouf (east)
-  rect(-5.7, -2.9, -5.0, -2.1), // tall monstera pot
-  rect(1.98, -3.72, 2.62, -3.08), // window palm pot
+  rect(-5.75, -1.55, -5.05, -0.75), // tall monstera pot
+  rect(2.18, -3.72, 2.82, -3.08), // window palm pot
   rect(1.75, -6.65, 3.0, -6.45), // balcony railing (outer, west of the gate)
   rect(4.2, -6.65, 5.05, -6.45), // balcony railing (outer, east of the gate)
   rect(1.75, -6.65, 1.95, -4.55), // balcony railing (west)
@@ -118,7 +120,7 @@ export const CAMERA_WALLS: Rect[] = [
 
 /** Tall furniture the boom should ride around instead of burying itself in. */
 const CAMERA_PROPS: Rect[] = [
-  rect(-5.45, 3.05, -2.15, 4.4), // sofa
+  rect(-5.45, 2.85, -2.15, 4.4), // sunken velvet lounge
   rect(0.45, 3.85, 2.95, 4.4), // bookshelf
   rect(3.35, 3.85, 4.75, 4.4), // record console
   rect(4.95, -1.25, 5.9, 1.45), // vanity
@@ -127,7 +129,7 @@ const CAMERA_PROPS: Rect[] = [
   rect(-2.25, -4.4, 1.95, -3.6), // window garden planters
   rect(-5.55, -4.4, -2.7, -3.45), // desk
   rect(-2.1, 3.7, -0.1, 4.4), // open wardrobe
-  rect(-5.7, -2.9, -5.0, -2.1), // tall monstera pot
+  rect(-5.75, -1.55, -5.05, -0.75), // tall monstera pot
 ]
 
 /** Keeps the boom a body's width off any wall, so it never grazes through one. */
