@@ -225,11 +225,11 @@ function FpsProbe() {
     }
   }, [gl])
 
-  useFrame(() => gl.info.reset(), -1000)
-
   // sampled with the frame rate, not in an effect: the drawing buffer changes
   // when the quality tier changes the pixel ratio, and that leaves CSS size
-  // untouched, so an effect keyed on size reported a stale resolution
+  // untouched, so an effect keyed on size reported a stale resolution.
+  // Priority must stay negative — a positive one takes rendering away from R3F,
+  // and on the low tier there is no composer to render in its place.
   useFrame((_, d) => {
     acc.current.t += d
     acc.current.n += 1
@@ -248,7 +248,9 @@ function FpsProbe() {
       acc.current.t = 0
       acc.current.n = 0
     }
-  }, 1000)
+    // counters carry the frame that was just presented; clear them for the next
+    gl.info.reset()
+  }, -1000)
   return null
 }
 
