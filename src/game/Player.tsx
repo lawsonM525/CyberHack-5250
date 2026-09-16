@@ -23,6 +23,7 @@ const REVEAL_PITCH = 0.2
 const MIN_LENS = 0.85
 const UP = new THREE.Vector3(0, 1, 0)
 const TMP_SIZE = new THREE.Vector3()
+const KNEES = new THREE.Vector3()
 
 function isDescendant(node: THREE.Object3D, ancestor: THREE.Object3D): boolean {
   let p: THREE.Object3D | null = node
@@ -107,7 +108,7 @@ export function Player({
       // up the boom reaches the canopy, low down it drops under the rail cap
       // and shoots her through the balusters. Keep it between the two.
       const deck = pos.current.y < -16.3
-      camPitch.current = THREE.MathUtils.clamp(camPitch.current, deck ? -0.06 : -0.42, deck ? 0.4 : 0.72)
+      camPitch.current = THREE.MathUtils.clamp(camPitch.current, deck ? -0.25 : -0.42, deck ? 0.4 : 0.72)
       if (input.recenter) camYaw.current = bodyYaw.current
     }
 
@@ -283,9 +284,19 @@ export function Player({
       toLens.divideScalar(lensDist)
       caster.near = 0.05
       caster.far = lensDist
-      caster.set(pivot, toLens)
-      const hits = caster.intersectObjects(occluders.current, false)
-      const clear = hits.length > 0 ? hits[0].distance - 0.16 : lensDist
+      // her head clears a balcony rail that her legs do not, so the boom is
+      // solved against her knees as well and keeps whichever is tighter
+      const reach = (from: THREE.Vector3): number => {
+        caster.set(from, toLens)
+        const hits = caster.intersectObjects(occluders.current, false)
+        return hits.length > 0 ? hits[0].distance - 0.16 : lensDist
+      }
+      // only out on the railed decks: indoors this would let the rug's cushions
+      // and table legs yank the lens in on every low angle
+      const railed = pos.current.y < -16.3 || (pos.current.y > -7.4 && pos.current.y < -5.2)
+      const clear = railed
+        ? Math.min(reach(pivot), reach(KNEES.set(pivot.x, 0.4, pivot.z)))
+        : reach(pivot)
       if (clear < MIN_LENS) {
         // nothing behind her but wall: ride over her shoulder looking down
         // rather than clamp the boom through it
