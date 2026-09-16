@@ -54,7 +54,6 @@ export function App() {
     if (phase !== 'playing' || stage !== 'arrived') return
     const t = window.setTimeout(() => {
       if (useGame.getState().stage !== 'arrived') return
-      audio.notify()
       useGame.getState().pushToast('New message — ORCHID', 'Your terminal is lit up. Walk to the desk and press E.')
     }, 3200)
     return () => window.clearTimeout(t)
@@ -187,26 +186,31 @@ function NotifStack() {
   const [hover, setHover] = useState(false)
   const last = notifs.length > 0 ? notifs[notifs.length - 1].id : 0
 
-  // a new line pops the window back open, then it folds itself away again —
-  // unless she pinned it or has the pointer on it, i.e. is reading
+  // a new line pops the window back open
   useEffect(() => {
-    if (last === 0) return undefined
+    if (last === 0) return
     setOpen(true)
-    if (pinned || hover) return undefined
+  }, [last])
+
+  // ...and it folds itself away again, unless she pinned it or has the pointer
+  // on it, i.e. is reading. Keyed on `open` so an explicit fold stays folded.
+  useEffect(() => {
+    if (!open || pinned || hover) return undefined
     const t = window.setTimeout(() => setOpen(false), LOG_LINGER)
     return () => window.clearTimeout(t)
-  }, [last, pinned, hover])
+  }, [last, open, pinned, hover])
 
   // T toggles the log by hand, like any other window on her desktop
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'KeyT' || e.repeat) return
-      setOpen((v) => !v)
-      setPinned((v) => !v)
+      // pin opens and holds it; unpin folds it away there and then
+      setPinned(!pinned)
+      setOpen(!pinned)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [pinned])
 
   if (notifs.length === 0) return null
 

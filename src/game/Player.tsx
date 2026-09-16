@@ -103,7 +103,10 @@ export function Player({
       const sens = 0.0022 * settings.sensitivity
       camYaw.current -= input.mouseX * sens
       camPitch.current += (settings.invertY ? -1 : 1) * input.mouseY * sens * 0.8
-      camPitch.current = THREE.MathUtils.clamp(camPitch.current, -0.42, 0.72)
+      // the Kingsley deck is roofed: past ~0.4 the boom rides up into the
+      // canopy and it lands across her legs, so the deck gets a lower ceiling
+      const top = pos.current.y < -16.3 ? 0.4 : 0.72
+      camPitch.current = THREE.MathUtils.clamp(camPitch.current, -0.42, top)
       if (input.recenter) camYaw.current = bodyYaw.current
     }
 

@@ -408,6 +408,8 @@ export const useGame = create<GameState>((set, get) => ({
       useGame.setState((s) => ({
         chats: [...s.chats, { id: `${beatId}-back`, friend: beat.friend, from: 'them', text: reply.back }],
       }))
+      // she is looking at the thread; a card over it is just noise
+      if (useGame.getState().overlay !== null) return
       useGame.getState().notify({
         title: friend.name,
         body: reply.back,
@@ -434,6 +436,7 @@ export const useGame = create<GameState>((set, get) => ({
       useGame.setState((st) => ({
         chats: [...st.chats, { id: `gift-${friendId}-back`, friend: friendId, from: 'them', text: friend.thanks }],
       }))
+      if (useGame.getState().overlay !== null) return
       useGame.getState().notify({
         title: friend.name,
         body: friend.thanks,
