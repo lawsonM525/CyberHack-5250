@@ -100,6 +100,7 @@ function Playing({
       {!ready && <SceneLoading />}
       {ready && <Hud />}
       {overlay === 'computer' && <ComputerOverlay />}
+      {overlay === 'handset' && <HandsetOverlay />}
       {overlay === 'inspect' && <InspectOverlay />}
       {overlay === 'pause' && <PauseMenu />}
       {overlay === 'bakery' && <BakeryOverlay />}
@@ -241,10 +242,10 @@ function NotifStack() {
           </button>
           <button
             className="wbtn"
-            title="open terminal"
+            title="open handset (chats only — the mission runs on the desk)"
             onClick={() => {
               document.exitPointerLock?.()
-              setOverlay('computer')
+              setOverlay('handset')
             }}
           >
             □
@@ -268,7 +269,7 @@ function NotifStack() {
                 onClick={() => {
                   if (n.kind !== 'text') return
                   document.exitPointerLock?.()
-                  setOverlay('computer')
+                  setOverlay('handset')
                 }}
               >
                 <span className="logrow-head">
@@ -658,6 +659,15 @@ function ComputerOverlay() {
   return (
     <div className="overlay">
       <Terminal onClose={closeOverlay} />
+    </div>
+  )
+}
+
+function HandsetOverlay() {
+  const closeOverlay = useGame((s) => s.closeOverlay)
+  return (
+    <div className="overlay">
+      <Terminal onClose={closeOverlay} remote />
     </div>
   )
 }

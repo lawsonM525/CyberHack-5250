@@ -19,7 +19,12 @@ interface Line {
   tone?: 'ok' | 'bad' | 'dim'
 }
 
-export function Terminal({ onClose }: { onClose: () => void }) {
+/**
+ * `remote` is the handset link opened from the inbox: friends and display only.
+ * The briefing, the notes and the access panel live on the desk machine, so the
+ * mission cannot be run from the middle of the rug.
+ */
+export function Terminal({ onClose, remote = false }: { onClose: () => void; remote?: boolean }) {
   const stage = useGame((s) => s.stage)
   const inspected = useGame((s) => s.inspected)
   const hintsUsed = useGame((s) => s.hintsUsed)
@@ -32,7 +37,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
   const unreadChats = useGame((s) => s.unreadChats)
   const markChatsRead = useGame((s) => s.markChatsRead)
 
-  const [tab, setTab] = useState<Tab>(stage === 'arrived' ? 'inbox' : 'access')
+  const [tab, setTab] = useState<Tab>(remote ? 'chats' : stage === 'arrived' ? 'inbox' : 'access')
   const [code, setCode] = useState('')
   const [bad, setBad] = useState(false)
   const [lines, setLines] = useState<Line[]>([
@@ -42,13 +47,13 @@ export function Terminal({ onClose }: { onClose: () => void }) {
   const unlocked = stage === 'unlocked' || stage === 'crossed'
 
   useEffect(() => {
-    if (tab === 'inbox') brief()
+    if (tab === 'inbox' && !remote) brief()
     if (tab === 'access') {
       const t = window.setTimeout(() => input.current?.focus(), 60)
       return () => window.clearTimeout(t)
     }
     return undefined
-  }, [tab, brief])
+  }, [tab, brief, remote])
 
   const visibleMessages = useMemo(
     () => MESSAGES.filter((_m, i) => i === 0 || stage === 'crossed'),
@@ -109,8 +114,10 @@ export function Terminal({ onClose }: { onClose: () => void }) {
     <div className="panel terminal" data-theme={theme} role="dialog" aria-label="Kestrel terminal">
       <div className="termbar">
         <span className="termbar-glyph">&gt;_</span>
-        <span className="termbar-title">kestrel os 4.2 — /dev/kingsley</span>
-        <span className="termbar-node">12F-WEST-ORCHIDHOUSE</span>
+        <span className="termbar-title">
+          {remote ? 'kestrel handset — /dev/chat (link only)' : 'kestrel os 4.2 — /dev/kingsley'}
+        </span>
+        <span className="termbar-node">{remote ? 'HANDSET' : '12F-WEST-ORCHIDHOUSE'}</span>
         <button className="wbtn" disabled aria-hidden="true" tabIndex={-1}>
           _
         </button>
@@ -123,16 +130,36 @@ export function Terminal({ onClose }: { onClose: () => void }) {
       </div>
       <div className="rail">
         <div className="brand">KESTREL OS 4.2</div>
-        <button className={`tab ${tab === 'inbox' ? 'on' : ''}`} onClick={() => { setTab('inbox'); audio.uiTick() }}>
+        <button
+          className={`tab ${tab === 'inbox' ? 'on' : ''} ${remote ? 'locked' : ''}`}
+          disabled={remote}
+          title={remote ? 'desk terminal only' : undefined}
+          onClick={() => { setTab('inbox'); audio.uiTick() }}
+        >
           Inbox
-          {stage === 'arrived' && <span className="dot" />}
+          {remote ? <span className="tab-lock">desk</span> : stage === 'arrived' && <span className="dot" />}
         </button>
-        <button className={`tab ${tab === 'access' ? 'on' : ''}`} onClick={() => { setTab('access'); audio.uiTick() }}>
+        <button
+          className={`tab ${tab === 'access' ? 'on' : ''} ${remote ? 'locked' : ''}`}
+          disabled={remote}
+          title={remote ? 'desk terminal only' : undefined}
+          onClick={() => { setTab('access'); audio.uiTick() }}
+        >
           Access
-          {unlocked && <span className="dot" style={{ background: '#6ff0c8', boxShadow: '0 0 10px #6ff0c8' }} />}
+          {remote ? (
+            <span className="tab-lock">desk</span>
+          ) : (
+            unlocked && <span className="dot" style={{ background: '#6ff0c8', boxShadow: '0 0 10px #6ff0c8' }} />
+          )}
         </button>
-        <button className={`tab ${tab === 'notes' ? 'on' : ''}`} onClick={() => { setTab('notes'); audio.uiTick() }}>
+        <button
+          className={`tab ${tab === 'notes' ? 'on' : ''} ${remote ? 'locked' : ''}`}
+          disabled={remote}
+          title={remote ? 'desk terminal only' : undefined}
+          onClick={() => { setTab('notes'); audio.uiTick() }}
+        >
           Notes
+          {remote && <span className="tab-lock">desk</span>}
         </button>
         <button
           className={`tab ${tab === 'chats' ? 'on' : ''}`}
@@ -150,7 +177,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
         </button>
         <div style={{ flex: 1 }} />
         <button className="btn ghost small termquit" onClick={onClose}>
-          Esc — step away
+          {remote ? 'Esc — put it down' : 'Esc — step away'}
         </button>
       </div>
 
@@ -160,6 +187,13 @@ export function Terminal({ onClose }: { onClose: () => void }) {
             <div key={i}>{i === 2 && unlocked ? 'link: KINGSLEY ROW ACCESS PANEL ... OPEN, span extended' : l}</div>
           ))}
         </div>
+
+        {remote && (
+          <p className="locked-note">
+            handset link — chats only. the briefing, your notes and the Kingsley panel run on the desk
+            machine: walk to the desk and press E.
+          </p>
+        )}
 
         {tab === 'inbox' && (
           <div>

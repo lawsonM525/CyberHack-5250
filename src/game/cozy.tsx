@@ -212,10 +212,10 @@ export function VelvetPit() {
       {seats.map((a, i) => (
         <mesh
           key={i}
-          geometry={pillowGeometry(0.8, 0.14, 0.58, 0.2)}
+          geometry={pillowGeometry(0.78, 0.22, 0.6, 0.62)}
           castShadow
           receiveShadow
-          position={[Math.sin(a) * 0.93, 0.525, Math.cos(a) * 0.93]}
+          position={[Math.sin(a) * 0.93, 0.545, Math.cos(a) * 0.93]}
           rotation={[0, a, 0]}
           scale={[1, 1, 1 / Z_SQUASH]}
           material={velvetLight}
@@ -226,7 +226,7 @@ export function VelvetPit() {
       {scatters.map((s, i) => (
         <mesh
           key={i}
-          geometry={pillowGeometry(s.r * 2, s.r * 1.9, s.r * 0.62, 0.42)}
+          geometry={pillowGeometry(s.r * 2, s.r * 1.9, s.r * 0.85, 0.75)}
           castShadow
           receiveShadow
           position={[Math.sin(s.a) * 1.02, 0.63 + s.r * 0.8, Math.cos(s.a) * 1.02]}
@@ -241,7 +241,7 @@ export function VelvetPit() {
           balling up on the arm */}
       <mesh
         castShadow
-        geometry={pillowGeometry(0.62, 0.05, 0.5, 0.18)}
+        geometry={pillowGeometry(0.62, 0.08, 0.5, 0.45)}
         position={[Math.sin(0.92) * 0.9, 0.61, Math.cos(0.92) * 0.9]}
         rotation={[0.06, 0.92, 0.04]}
         scale={[1, 1, 1 / Z_SQUASH]}
@@ -251,6 +251,22 @@ export function VelvetPit() {
     </group>
   )
 }
+
+/**
+ * Blown-glass stem for the mushroom lamp, sampled off a spline so the silhouette
+ * is a continuous curve from the foot to the neck instead of a straight taper.
+ */
+const STEM_PROFILE = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0.001, 0, 0),
+  new THREE.Vector3(0.2, 0.02, 0),
+  new THREE.Vector3(0.175, 0.1, 0),
+  new THREE.Vector3(0.115, 0.32, 0),
+  new THREE.Vector3(0.082, 0.56, 0),
+  new THREE.Vector3(0.079, 0.74, 0),
+  new THREE.Vector3(0.1, 0.84, 0),
+])
+  .getPoints(24)
+  .map((p) => new THREE.Vector2(p.x, p.y))
 
 /** The reference's big amber mushroom lamp: glass dome over a warm filament. */
 export function MushroomLamp({
@@ -269,9 +285,10 @@ export function MushroomLamp({
   const falloff = useMemo(() => shadePlate(), [])
   return (
     <group position={position} scale={scale}>
-      {/* stem */}
-      <mesh castShadow position={[0, 0.42, 0]}>
-        <cylinderGeometry args={[0.085, 0.17, 0.84, seg]} />
+      {/* stem: a waisted lathe rather than a straight cone, which read as a
+          faceted wedge against the wall */}
+      <mesh castShadow position={[0, 0, 0]}>
+        <latheGeometry args={[STEM_PROFILE, seg * 2]} />
         <meshStandardMaterial
           color="#f0a04a"
           emissive="#ff8a2a"

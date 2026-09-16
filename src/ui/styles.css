@@ -1323,6 +1323,22 @@ button {
   font-style: italic;
 }
 
+.rail .tab.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tab-lock {
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tt);
+  border: 1px solid rgba(var(--tt-rgb), 0.45);
+  padding: 0 4px;
+}
+
 .code-panel {
   display: grid;
   gap: 18px;

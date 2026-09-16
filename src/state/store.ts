@@ -15,7 +15,7 @@ export type MissionStage =
   | 'unlocked'
   | 'crossed'
 
-export type Overlay = null | 'computer' | 'inspect' | 'pause' | 'complete' | 'bakery'
+export type Overlay = null | 'computer' | 'handset' | 'inspect' | 'pause' | 'complete' | 'bakery'
 
 export interface ChatLine {
   id: string
