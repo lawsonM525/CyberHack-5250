@@ -431,11 +431,11 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
       {/* railings */}
       <BalconyRail x={2.4} z={-16.47} w={0.9} />
       <BalconyRail x={4.9} z={-16.47} w={1.1} />
-      <mesh position={[1.9, 0.55, -17.6]}>
+      <mesh position={[1.9, 0.55, -17.6]} userData={{ camFade: true }}>
         <boxGeometry args={[0.08, 1.1, 2.3]} />
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
       </mesh>
-      <mesh position={[5.5, 0.55, -17.6]}>
+      <mesh position={[5.5, 0.55, -17.6]} userData={{ camFade: true }}>
         <boxGeometry args={[0.08, 1.1, 2.3]} />
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
       </mesh>
@@ -486,10 +486,12 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
   )
 }
 
+/** `camFade`: thin metalwork the boom cannot dodge, so the lens dissolves it
+ *  instead of shoving itself into her back. */
 function BalconyRail({ x, z, w }: { x: number; z: number; w: number }) {
   const bars = Math.max(4, Math.round(w / 0.24))
   return (
-    <group position={[x, 0, z]}>
+    <group position={[x, 0, z]} userData={{ camFade: true }}>
       <mesh position={[0, 1.02, 0]}>
         <boxGeometry args={[w, 0.06, 0.08]} />
         <meshStandardMaterial color="#4a4e58" metalness={0.75} roughness={0.35} />
@@ -528,11 +530,11 @@ export function HomeBalcony({ gateOpen }: { gateOpen: boolean }) {
         <boxGeometry args={[3.5, 0.16, 2.3]} />
         <meshStandardMaterial map={concrete} color="#2f323b" roughness={0.92} />
       </mesh>
-      <mesh position={[1.72, 0.55, -5.6]}>
+      <mesh position={[1.72, 0.55, -5.6]} userData={{ camFade: true }}>
         <boxGeometry args={[0.08, 1.1, 2.3]} />
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
       </mesh>
-      <mesh position={[5.08, 0.55, -5.6]}>
+      <mesh position={[5.08, 0.55, -5.6]} userData={{ camFade: true }}>
         <boxGeometry args={[0.08, 1.1, 2.3]} />
         <meshStandardMaterial color="#3c4049" metalness={0.7} roughness={0.4} />
       </mesh>

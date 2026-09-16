@@ -24,6 +24,18 @@ const MIN_LENS = 0.85
 const UP = new THREE.Vector3(0, 1, 0)
 const TMP_SIZE = new THREE.Vector3()
 const KNEES = new THREE.Vector3()
+/** How much of a rail survives when the lens is looking through it. */
+const FADED = 0.16
+
+/** Thin metalwork the boom cannot dodge, tagged where it is built. */
+function isFadeable(node: THREE.Object3D): boolean {
+  let p: THREE.Object3D | null = node
+  while (p) {
+    if (p.userData.camFade) return true
+    p = p.parent
+  }
+  return false
+}
 
 function isDescendant(node: THREE.Object3D, ancestor: THREE.Object3D): boolean {
   let p: THREE.Object3D | null = node
@@ -63,6 +75,7 @@ export function Player({
   const reveal = useRef(0)
   const lastStage = useRef(stage)
   const occluders = useRef<THREE.Mesh[]>([])
+  const fadeable = useRef<THREE.Mesh[]>([])
   const occluderAge = useRef(0)
   const raycaster = useRef(new THREE.Raycaster())
   const { camera, scene } = useThree()
@@ -104,11 +117,9 @@ export function Player({
       const sens = 0.0022 * settings.sensitivity
       camYaw.current -= input.mouseX * sens
       camPitch.current += (settings.invertY ? -1 : 1) * input.mouseY * sens * 0.8
-      // the Kingsley deck is roofed and railed, and both land across her: high
-      // up the boom reaches the canopy, low down it drops under the rail cap
-      // and shoots her through the balusters. Keep it between the two.
-      const deck = pos.current.y < -16.3
-      camPitch.current = THREE.MathUtils.clamp(camPitch.current, deck ? -0.25 : -0.42, deck ? 0.4 : 0.72)
+      // the Kingsley deck is roofed; above ~0.4 the boom reaches into the canopy
+      const top = pos.current.y < -16.3 ? 0.4 : 0.72
+      camPitch.current = THREE.MathUtils.clamp(camPitch.current, -0.42, top)
       if (input.recenter) camYaw.current = bodyYaw.current
     }
 
@@ -240,6 +251,7 @@ export function Player({
     if (occluderAge.current <= 0) {
       occluderAge.current = 0.4
       const near: { mesh: THREE.Mesh; d: number }[] = []
+      const fade: THREE.Mesh[] = []
       const box = new THREE.Box3()
       const self = root.current
       scene.traverse((o) => {
@@ -251,6 +263,10 @@ export function Player({
           ? material.some((m) => m.transparent)
           : material.transparent
         if (seeThrough) return
+        if (isFadeable(mesh)) {
+          fade.push(mesh)
+          return
+        }
         box.setFromObject(mesh)
         if (box.isEmpty()) return
         const d = box.distanceToPoint(pivot)
@@ -263,6 +279,7 @@ export function Player({
       })
       near.sort((a, b) => a.d - b.d)
       occluders.current = near.slice(0, 120).map((n) => n.mesh)
+      fadeable.current = fade
     }
 
     const caster = raycaster.current
@@ -291,12 +308,7 @@ export function Player({
         const hits = caster.intersectObjects(occluders.current, false)
         return hits.length > 0 ? hits[0].distance - 0.16 : lensDist
       }
-      // only out on the railed decks: indoors this would let the rug's cushions
-      // and table legs yank the lens in on every low angle
-      const railed = pos.current.y < -16.3 || (pos.current.y > -7.4 && pos.current.y < -5.2)
-      const clear = railed
-        ? Math.min(reach(pivot), reach(KNEES.set(pivot.x, 0.4, pivot.z)))
-        : reach(pivot)
+      const clear = reach(pivot)
       if (clear < MIN_LENS) {
         // nothing behind her but wall: ride over her shoulder looking down
         // rather than clamp the boom through it
@@ -309,6 +321,32 @@ export function Player({
 
     camera.position.copy(camPos.current)
     camera.lookAt(pivot.x, overhead ? 0.75 : HEAD + 0.12 - pinch * 0.75, pivot.z)
+
+    // balusters are too thin for the boom to solve around without shoving the
+    // lens into her back, so the ones in the way dissolve instead
+    if (fadeable.current.length > 0) {
+      const eye = camPos.current
+      const blocking = new Set<THREE.Object3D>()
+      // head and knees, so a rail that only crosses her legs still dissolves
+      for (const target of [pivot, KNEES.set(pivot.x, 0.4, pivot.z)]) {
+        const ray = target.clone().sub(eye)
+        const span = ray.length()
+        if (span < 0.02) continue
+        caster.near = 0.02
+        caster.far = span
+        caster.set(eye, ray.divideScalar(span))
+        for (const hit of caster.intersectObjects(fadeable.current, false)) blocking.add(hit.object)
+      }
+      const k = Math.min(1, delta * 10)
+      for (const mesh of fadeable.current) {
+        const material = mesh.material as THREE.MeshStandardMaterial
+        const want = blocking.has(mesh) ? FADED : 1
+        if (Math.abs(material.opacity - want) < 0.01) continue
+        material.opacity += (want - material.opacity) * k
+        material.transparent = material.opacity < 0.99
+        material.depthWrite = !material.transparent
+      }
+    }
 
     if (import.meta.env.DEV) {
       ;(window as unknown as { __cam?: unknown }).__cam = {
