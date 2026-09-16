@@ -11,6 +11,29 @@
   --shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
   --font: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+  /* terminal phosphor, shared by the terminal, inbox, objective and wallet chrome */
+  --tt: #6ef09a;
+  --tt-rgb: 110, 240, 154;
+}
+
+[data-term='amber'] {
+  --tt: #ffd24a;
+  --tt-rgb: 255, 210, 74;
+}
+
+[data-term='green'] {
+  --tt: #6ef09a;
+  --tt-rgb: 110, 240, 154;
+}
+
+[data-term='magenta'] {
+  --tt: #ff7ad0;
+  --tt-rgb: 255, 122, 208;
+}
+
+[data-term='ice'] {
+  --tt: #7fd8ff;
+  --tt-rgb: 127, 216, 255;
 }
 
 * {
@@ -419,11 +442,11 @@ button {
   border-radius: 0;
   font-family: var(--mono);
   background: rgba(5, 4, 8, 0.9);
-  border: 1px solid rgba(255, 196, 132, 0.28);
-  border-left: 3px solid var(--amber);
+  border: 1px solid rgba(var(--tt-rgb), 0.28);
+  border-left: 3px solid var(--tt);
   box-shadow:
-    inset 0 0 34px rgba(255, 180, 110, 0.05),
-    0 0 18px rgba(255, 170, 90, 0.07);
+    inset 0 0 34px rgba(var(--tt-rgb), 0.05),
+    0 0 18px rgba(var(--tt-rgb), 0.07);
 }
 
 .objective::after {
@@ -443,17 +466,17 @@ button {
 .objective .label {
   font-size: 10px;
   letter-spacing: 0.3em;
-  color: var(--amber);
+  color: var(--tt);
   text-transform: uppercase;
   margin-bottom: 5px;
-  text-shadow: 0 0 7px rgba(255, 180, 110, 0.35);
+  text-shadow: 0 0 7px rgba(var(--tt-rgb), 0.35);
 }
 
 .objective .text {
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink);
-  text-shadow: 0 0 6px rgba(255, 180, 110, 0.18);
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.18);
 }
 
 .prompt {
@@ -567,10 +590,10 @@ button {
   border-radius: 0;
   overflow: hidden;
   background: rgba(5, 4, 8, 0.92);
-  border: 1px solid rgba(255, 196, 132, 0.34);
+  border: 1px solid rgba(var(--tt-rgb), 0.34);
   box-shadow:
-    inset 0 0 40px rgba(255, 180, 110, 0.05),
-    0 0 22px rgba(255, 170, 90, 0.08),
+    inset 0 0 40px rgba(var(--tt-rgb), 0.05),
+    0 0 22px rgba(var(--tt-rgb), 0.08),
     0 10px 28px rgba(0, 0, 0, 0.55);
   /* its own keyframe: the shared `slide` ends at translate(-50%, 0) and would
      drag this left-anchored window half off screen */
@@ -583,11 +606,11 @@ button {
   gap: 6px;
   padding: 3px 4px 3px 8px;
   background: #1a1218;
-  border-bottom: 1px solid rgba(255, 196, 132, 0.22);
+  border-bottom: 1px solid rgba(var(--tt-rgb), 0.22);
 }
 
 .logwin-glyph {
-  color: #ffc46b;
+  color: var(--tt);
   font-size: 11px;
 }
 
@@ -613,7 +636,7 @@ button {
   line-height: 1;
   color: #cbb79b;
   background: #2a1f26;
-  border: 1px solid rgba(255, 196, 132, 0.28);
+  border: 1px solid rgba(var(--tt-rgb), 0.28);
   cursor: pointer;
 }
 
@@ -643,14 +666,14 @@ button {
       rgba(255, 255, 255, 0.014) 1px,
       rgba(255, 255, 255, 0.014) 3px
     ),
-    radial-gradient(130% 100% at 50% 50%, rgba(255, 190, 120, 0.05), rgba(0, 0, 0, 0.3) 100%);
+    radial-gradient(130% 100% at 50% 50%, rgba(var(--tt-rgb), 0.05), rgba(0, 0, 0, 0.3) 100%);
 }
 
 .logwin-title,
 .logwin-glyph,
 .logrow-from,
 .logrow-text {
-  text-shadow: 0 0 6px rgba(255, 180, 110, 0.2);
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.2);
 }
 
 .logwin-body {
@@ -803,18 +826,18 @@ button {
   gap: 7px;
   padding: 3px 8px;
   border-radius: 0;
-  text-shadow: 0 0 6px rgba(255, 180, 110, 0.22);
-  box-shadow: 0 0 16px rgba(255, 170, 90, 0.07);
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.22);
+  box-shadow: 0 0 16px rgba(var(--tt-rgb), 0.07);
   font-family: var(--mono);
   font-size: 11px;
   color: #e0cdb2;
   background: #1a1218;
-  border: 1px solid rgba(255, 196, 132, 0.28);
+  border: 1px solid rgba(var(--tt-rgb), 0.28);
   cursor: pointer;
 }
 
 .logchip:hover {
-  border-color: rgba(255, 196, 132, 0.6);
+  border-color: rgba(var(--tt-rgb), 0.6);
 }
 
 .logchip-dot {
@@ -825,14 +848,14 @@ button {
 }
 
 .logchip-n {
-  color: #ffc46b;
+  color: var(--tt);
 }
 
 .logchip-key {
   padding: 0 4px;
   font-size: 9px;
   color: #8a7159;
-  border: 1px solid rgba(255, 196, 132, 0.25);
+  border: 1px solid rgba(var(--tt-rgb), 0.25);
 }
 
 .wallet {
@@ -847,16 +870,16 @@ button {
   font-family: var(--mono);
   font-size: 13px;
   color: #ffe0ab;
-  text-shadow: 0 0 7px rgba(255, 180, 110, 0.3);
+  text-shadow: 0 0 7px rgba(var(--tt-rgb), 0.3);
   background: rgba(5, 4, 8, 0.9);
-  border: 1px solid rgba(255, 200, 130, 0.32);
-  box-shadow: 0 0 18px rgba(255, 170, 90, 0.07);
+  border: 1px solid rgba(var(--tt-rgb), 0.32);
+  box-shadow: 0 0 18px rgba(var(--tt-rgb), 0.07);
   transition: transform 160ms ease, border-color 160ms ease;
 }
 
 .wallet.bump {
   transform: scale(1.12);
-  border-color: rgba(255, 210, 140, 0.85);
+  border-color: rgba(var(--tt-rgb), 0.85);
 }
 
 .wallet .coin {
@@ -873,7 +896,7 @@ button {
 
 .chats-bal {
   margin-top: 0;
-  color: #8b9bab;
+  color: #c8c2b6;
 }
 
 .thread {
@@ -1058,8 +1081,6 @@ button {
 
 /* terminal */
 .terminal {
-  --tt: #ffb765;
-  --tt-rgb: 255, 183, 101;
   position: relative;
   width: min(960px, 94vw);
   height: min(620px, 88vh);
@@ -1105,6 +1126,11 @@ button {
 .terminal .readout,
 .terminal .code-input {
   text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.22);
+}
+
+.terminal[data-theme='amber'] {
+  --tt: #ffd24a;
+  --tt-rgb: 255, 210, 74;
 }
 
 .terminal[data-theme='green'] {
@@ -1243,7 +1269,7 @@ button {
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.75;
-  color: #b6b2ab;
+  color: #ded8ce;
 }
 
 .terminal .view::-webkit-scrollbar {
@@ -1257,7 +1283,7 @@ button {
 
 .banner {
   color: var(--tt);
-  opacity: 0.8;
+  opacity: 0.95;
   font-size: 11px;
   border-bottom: 1px dashed rgba(var(--tt-rgb), 0.2);
   padding-bottom: 12px;
@@ -1285,7 +1311,7 @@ button {
 
 .msg-body p {
   margin: 0 0 12px;
-  color: #a8a49d;
+  color: #ded8ce;
 }
 
 .msg-sig {
@@ -1370,8 +1396,8 @@ button {
 }
 
 .theme-card {
-  --tt: #ffb765;
-  --tt-rgb: 255, 183, 101;
+  --tt: #ffd24a;
+  --tt-rgb: 255, 210, 74;
   display: grid;
   gap: 4px;
   text-align: left;

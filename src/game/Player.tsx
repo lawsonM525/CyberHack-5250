@@ -12,7 +12,12 @@ import { drainMouse, isPointerLocked, readInput } from './input'
 const WALK = 2.05
 const RUN = 4.1
 const ACCEL = 14
-const HEAD = 1.12
+const HEAD = 1.2
+/** She read small against the furniture at 1.0. */
+const HERO_SCALE = 1.09
+/** Desk chair seat, and where she stands up again so she never wakes inside it. */
+const SEAT = { x: -3.9, z: -2.94, yaw: 0, drop: 0.33 }
+const STAND = { x: -3.9, z: -2.2 }
 /** Close enough that she, not the rug, is the subject of the frame. */
 const DIST = 2.4
 const MIN_DIST = 1.2
@@ -57,12 +62,15 @@ export function Player({
   const lookId = useGame((s) => s.look)
   const stage = useGame((s) => s.stage)
   const respawn = useGame((s) => s.respawn)
+  const overlay = useGame((s) => s.overlay)
   const settings = useGame((s) => s.settings)
   const look = useMemo(() => getLook(lookId), [lookId])
   const bridgeOpen = stage === 'unlocked' || stage === 'crossed'
 
   const root = useRef<THREE.Group>(null)
-  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 0 })
+  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 0, sit: 0 })
+  const sit = useRef(0)
+  const seated = useRef(false)
   const pos = useRef(new THREE.Vector2(respawn.at[0], respawn.at[1]))
   const vel = useRef(new THREE.Vector2())
   const bodyYaw = useRef(respawn.facing)
@@ -182,8 +190,34 @@ export function Player({
       audio.footstep(actualSpeed > WALK * 1.25)
     }
 
+    // sitting down to use the terminal: she slides onto the chair and the rig
+    // folds into the desk pose, then steps clear of the chair when she stands
+    if (overlay === 'computer' && Math.hypot(pos.current.x - SEAT.x, pos.current.y - SEAT.z) < 2.6) {
+      seated.current = true
+    } else if (mag > 0.01 || overlay === 'pause') {
+      // she stays in the chair after closing the terminal until you walk her off
+      seated.current = false
+    }
+    const wantSit = seated.current
+    const wasSit = sit.current
+    sit.current += ((wantSit ? 1 : 0) - sit.current) * Math.min(1, delta * 5)
+    if (wantSit) {
+      const k = Math.min(1, delta * 5)
+      pos.current.x += (SEAT.x - pos.current.x) * k
+      pos.current.y += (SEAT.z - pos.current.y) * k
+      let diff = SEAT.yaw - bodyYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      bodyYaw.current += diff * k
+      motion.current.gait = 0
+    } else if (wasSit > 0.25 && sit.current <= 0.25) {
+      pos.current.set(STAND.x, STAND.z)
+      vel.current.set(0, 0)
+    }
+    motion.current.sit = sit.current
+
     if (root.current) {
-      root.current.position.set(pos.current.x, 0, pos.current.y)
+      root.current.position.set(pos.current.x, -sit.current * SEAT.drop, pos.current.y)
       root.current.rotation.y = bodyYaw.current
     }
 
@@ -441,7 +475,9 @@ export function Player({
 
   return (
     <group ref={root}>
-      <HeroBody look={look} motion={motion} reducedMotion={settings.reducedMotion} />
+      <group scale={HERO_SCALE}>
+        <HeroBody look={look} motion={motion} reducedMotion={settings.reducedMotion} />
+      </group>
       <pointLight position={[0, 1.4, 0.35]} color="#ffd9b0" intensity={0.35} distance={2.6} decay={2} />
     </group>
   )

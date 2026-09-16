@@ -8,8 +8,8 @@ import { audio } from '../audio/audio'
 type Tab = 'inbox' | 'access' | 'notes' | 'chats' | 'display'
 
 const THEMES: { id: TermTheme; name: string; blurb: string }[] = [
-  { id: 'amber', name: 'Amber CRT', blurb: 'the factory phosphor. warm, slightly tired.' },
-  { id: 'green', name: 'Terminal Green', blurb: 'for when you want to feel like a felony.' },
+  { id: 'green', name: 'Terminal Green', blurb: 'the factory phosphor. the one that feels like a felony.' },
+  { id: 'amber', name: 'High-Vis Yellow', blurb: 'loud, bright, impossible to misread at 3am.' },
   { id: 'magenta', name: 'Hot Magenta', blurb: 'unserious. you love it.' },
   { id: 'ice', name: 'Ice Blue', blurb: 'the corporate default you never removed.' },
 ]
@@ -191,7 +191,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
               <div style={{ color: 'var(--tt)', letterSpacing: '0.16em', fontSize: 11, textTransform: 'uppercase' }}>
                 Kingsley Row — 12F balcony panel
               </div>
-              <p style={{ color: '#8b9bab', margin: '6px 0 0' }}>
+              <p style={{ color: '#c8c2b6', margin: '6px 0 0' }}>
                 {unlocked
                   ? 'Gate released. Span extended from your railing. Walk out when you are ready.'
                   : 'Four digit key. Unlimited attempts — the panel is already thinned, it will not lock you out.'}
@@ -246,7 +246,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
 
         {tab === 'notes' && (
           <div>
-            <p style={{ color: '#8b9bab', marginTop: 0 }}>
+            <p style={{ color: '#c8c2b6', marginTop: 0 }}>
               {notes.length === 0
                 ? 'Nothing written down yet. Walk up to things in the apartment and press E.'
                 : `${notes.length} things noticed${foundAllTags ? ' — all four tags are here. Order them by bloom date.' : ''}`}
@@ -270,7 +270,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
         {tab === 'chats' && <Chats />}
         {tab === 'display' && (
           <div>
-            <p style={{ color: '#8b9bab', marginTop: 0 }}>
+            <p style={{ color: '#c8c2b6', marginTop: 0 }}>
               Phosphor profile. Changes the whole panel and sticks to your save.
             </p>
             <div className="notes-grid">
@@ -312,7 +312,7 @@ function Chats() {
 
   if (threads.length === 0) {
     return (
-      <p style={{ color: '#8b9bab', marginTop: 0 }}>
+      <p style={{ color: '#c8c2b6', marginTop: 0 }}>
         No one has texted yet. Give it a minute — they always do.
       </p>
     )

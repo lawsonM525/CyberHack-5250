@@ -9,6 +9,8 @@ export interface MotionState {
   turning: number
   /** Seconds of continuous stillness, used for idle flourishes. */
   still: number
+  /** 0 standing, 1 seated at the desk. */
+  sit: number
 }
 
 interface Props {

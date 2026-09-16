@@ -21,7 +21,7 @@ function useWood(repeat = 1) {
 }
 
 export const TERM_PHOSPHOR: Record<TermTheme, string> = {
-  amber: '255,183,101',
+  amber: '255,210,74',
   green: '110,240,154',
   magenta: '255,122,208',
   ice: '127,216,255',

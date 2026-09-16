@@ -89,9 +89,10 @@ function Playing({
   overlay: ReturnType<typeof useGame.getState>['overlay']
 }) {
   const ready = useSceneReady()
+  const termTheme = useGame((s) => s.settings.termTheme)
 
   return (
-    <div className={`app ${glitch && !reducedMotion ? 'glitching' : ''}`}>
+    <div className={`app ${glitch && !reducedMotion ? 'glitching' : ''}`} data-term={termTheme}>
       <div className="scene">
         <Scene paused={overlay !== null} />
       </div>

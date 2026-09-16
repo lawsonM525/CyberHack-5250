@@ -322,7 +322,7 @@ function PreviewCamera() {
 
 function Turntable({ look }: { look: ReturnType<typeof getLook> }) {
   const g = useRef<THREE.Group>(null)
-  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 99 })
+  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 99, sit: 0 })
   // she sways around front-on rather than spinning away from camera
   useFrame(({ clock }) => {
     if (g.current) g.current.rotation.y = Math.PI + Math.sin(clock.elapsedTime * 0.35) * 0.6

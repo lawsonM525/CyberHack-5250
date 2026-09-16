@@ -80,7 +80,7 @@ const SAVE_KEY = 'cyberhack5250.save.v1'
 const SAVE_VERSION = 1
 
 export const DEFAULT_SETTINGS: Settings = {
-  termTheme: 'amber',
+  termTheme: 'green',
   music: 0.6,
   sfx: 0.8,
   muted: false,

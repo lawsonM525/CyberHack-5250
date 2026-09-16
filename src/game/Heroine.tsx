@@ -9,6 +9,28 @@ import type { LookPreset } from '../content/presets'
 const ANIMS = ['idle', 'walk', 'run'] as const
 type AnimName = (typeof ANIMS)[number]
 
+/**
+ * Sitting is posed, not animated: the retargeted clip set is idle/walk/run only,
+ * so the desk pose folds the legs and leans the spine on top of the idle pose by
+ * blending a fixed local rotation into each joint.
+ */
+const SIT_POSE: [string, [number, number, number]][] = [
+  ['LeftUpLeg', [-1.42, 0.12, 0.06]],
+  ['RightUpLeg', [-1.42, -0.12, -0.06]],
+  ['LeftLeg', [1.5, 0, 0]],
+  ['RightLeg', [1.5, 0, 0]],
+  ['LeftFoot', [0.2, 0, 0]],
+  ['RightFoot', [0.2, 0, 0]],
+  ['Spine', [0.1, 0, 0]],
+  ['Spine01', [0.06, 0, 0]],
+  ['LeftArm', [0, 0, 0.22]],
+  ['RightArm', [0, 0, -0.22]],
+  ['LeftForeArm', [-0.35, 0, 0]],
+  ['RightForeArm', [-0.35, 0, 0]],
+]
+
+const IDENTITY = new THREE.Quaternion()
+
 const animUrl = (clips: string, name: AnimName) =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`
@@ -117,6 +139,17 @@ export function Heroine({
 
   const weights = useRef({ idle: 1, walk: 0, run: 0 })
 
+  const seated = useMemo(
+    () =>
+      SIT_POSE.flatMap(([name, [x, y, z]]) => {
+        const bone = object.getObjectByName(name)
+        if (!bone) return []
+        return [{ bone, delta: new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)) }]
+      }),
+    [object],
+  )
+  const blend = useRef(new THREE.Quaternion())
+
   useFrame((_, rawDelta) => {
     const delta = Math.min(rawDelta, 0.25)
     const raw = motion.current?.gait
@@ -134,6 +167,14 @@ export function Heroine({
     // running reads better slightly quicker than the retargeted clip's own tempo
     if (actions.run) actions.run.timeScale = 1.15
     mixer.update(reducedMotion ? delta * 0.6 : delta)
+
+    const sit = THREE.MathUtils.clamp(motion.current?.sit ?? 0, 0, 1)
+    if (sit > 0.002) {
+      for (const { bone, delta: d } of seated) {
+        blend.current.slerpQuaternions(IDENTITY, d, sit)
+        bone.quaternion.multiply(blend.current)
+      }
+    }
   })
 
   // the generated rig faces +X; the controller's yaw convention is -Z
