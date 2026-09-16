@@ -136,6 +136,8 @@ const CAMERA_PROPS: Rect[] = [
   rect(-5.55, -4.4, -2.7, -3.45), // desk
   rect(-2.1, 3.7, -0.1, 4.4), // open wardrobe
   rect(-5.75, -1.55, -5.05, -0.75), // tall monstera pot
+  rect(4.9, -18.6, 5.4, -18.1), // Kingsley planter palm
+  rect(2.2, -18.6, 2.7, -18.2), // Kingsley delivery crate
 ]
 
 /**
@@ -156,7 +158,9 @@ export function cameraBlocked(x: number, z: number): boolean {
     if (inside(w, x, z, CAMERA_SKIN)) return true
   }
   for (const l of CAMERA_LEDGES) {
-    if (inside(l, x, z, 0.06)) return true
+    // wide enough to keep the lens off the deck's railings, narrow enough that
+    // she can still stand beside them
+    if (inside(l, x, z, 0.22)) return true
   }
   for (const p of CAMERA_PROPS) {
     if (inside(p, x, z, 0.22)) return true

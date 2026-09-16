@@ -208,7 +208,8 @@ function FpsProbe() {
   // dev-only handle so a profiling script can isolate the cost of each group
   useEffect(() => {
     if (!import.meta.env.DEV) return
-    ;(window as unknown as { __scene?: unknown }).__scene = { gl, scene, camera }
+    ;(window as unknown as { __scene?: unknown; __three?: unknown }).__scene = { gl, scene, camera }
+    ;(window as unknown as { __three?: unknown }).__three = THREE
   }, [gl, scene, camera])
 
   // sampled with the frame rate, not in an effect: the drawing buffer changes
