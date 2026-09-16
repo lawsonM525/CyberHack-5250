@@ -222,7 +222,11 @@ export function Player({
     }
 
     // third person camera with wall-aware distance
-    const pivot = new THREE.Vector3(pos.current.x, HEAD, pos.current.y)
+    // seated she is a third of a metre shorter and the chair back is between
+    // her and the room: aiming at standing head height put the lens under the
+    // seat pad and framed the empty air above her
+    const sitK = THREE.MathUtils.clamp(sit.current, 0, 1)
+    const pivot = new THREE.Vector3(pos.current.x, HEAD - sitK * SEAT.drop, pos.current.y)
     const dirY = Math.sin(camPitch.current)
 
     /** How far the boom can run down a heading before it reaches solid mass. */
@@ -272,6 +276,10 @@ export function Player({
           Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
           pivot.z + dirZ * dist,
         )
+    if (sitK > 0.05) {
+      // never let the boom drop below the seat pad while she is in the chair
+      desired.y = Math.max(desired.y, pivot.y + 0.3 + sitK * 0.25)
+    }
     if (!camInit.current) {
       camPos.current.copy(desired)
       camInit.current = true
@@ -346,7 +354,11 @@ export function Player({
         return hits.length > 0 ? hits[0].distance - 0.16 : lensDist
       }
       const clear = reach(pivot)
-      if (clear < MIN_LENS) {
+      if (clear < MIN_LENS && sitK > 0.5) {
+        // the desk corner is tight; sat down, back off along the boom instead
+        // of snapping to the near-top-down shot that hides her in the chair
+        camPos.current.copy(pivot).addScaledVector(toLens, Math.max(clear, 1.1))
+      } else if (clear < MIN_LENS) {
         // nothing behind her but wall: ride over her shoulder looking down
         // rather than clamp the boom through it
         camPos.current.set(pivot.x, pivot.y + headroom(), pivot.z)
@@ -360,7 +372,11 @@ export function Player({
     // aiming at her head from below puts her feet off the bottom of the frame,
     // so the lower the lens sits the further down the body it looks
     const droop = Math.max(0, -camPitch.current) * 1.1
-    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD - 0.06 - pinch * 0.75 - droop, pivot.z)
+    camera.lookAt(
+      pivot.x,
+      overhead ? 0.75 : pivot.y - 0.06 - pinch * 0.75 * (1 - sitK) - droop * (1 - sitK * 0.6),
+      pivot.z,
+    )
 
     // balusters are too thin for the boom to solve around without shoving the
     // lens into her back, so the ones in the way dissolve instead

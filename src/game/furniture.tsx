@@ -255,7 +255,15 @@ export function Chair() {
         <cylinderGeometry args={[0.24, 0.26, 0.09, 18]} />
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />
       </mesh>
-      <Soft args={[0.42, 0.5, 0.07]} castShadow position={[0, 0.74, -0.22]} rotation={[0.16, 0, 0]}>
+      {/* the back rest sits between her and the room boom while she works, so
+          it dissolves like the balcony rails rather than hiding her torso */}
+      <Soft
+        args={[0.42, 0.5, 0.07]}
+        castShadow
+        position={[0, 0.74, -0.22]}
+        rotation={[0.16, 0, 0]}
+        userData={{ camFade: true }}
+      >
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />
       </Soft>
       <mesh position={[0, 0.25, 0]}>
