@@ -88,108 +88,132 @@ function useWalnut(repeat = 1.4) {
 }
 
 /**
- * Tufts a ring: pinches the tube at regular intervals around the axis so a
- * bolster reads as a run of buttoned cushions instead of one long sausage.
+ * The cross-section of the curved sofa, read outward from the front of the
+ * seat: front skirt, seat lip, seat, back cushion, rolled top, outer back,
+ * base. Revolving it gives one continuous upholstered shell — no frame to
+ * expose, no seam where a back meets an arm.
  */
-function tufted(geo: THREE.BufferGeometry, tufts: number, depth = 0.12) {
-  const p = geo.attributes.position as THREE.BufferAttribute
-  const v = new THREE.Vector3()
-  for (let i = 0; i < p.count; i++) {
-    v.fromBufferAttribute(p, i)
-    const a = Math.atan2(v.y, v.x)
-    const pinch = 1 - depth * (0.5 + 0.5 * Math.cos(a * tufts))
-    p.setZ(i, v.z * pinch)
-    const r = Math.hypot(v.x, v.y)
-    const k = r > 0 ? (r - (1 - pinch) * depth * 0.6) / r : 1
-    p.setX(i, v.x * k)
-    p.setY(i, v.y * k)
-  }
-  p.needsUpdate = true
-  geo.computeVertexNormals()
-  return geo
-}
+const SOFA_PROFILE: [number, number][] = [
+  [0.7, 0.0],
+  [0.71, 0.14],
+  [0.705, 0.34],
+  [0.74, 0.44],
+  [0.84, 0.475],
+  [1.0, 0.46],
+  [1.1, 0.5],
+  [1.15, 0.64],
+  [1.2, 0.82],
+  [1.3, 0.93],
+  [1.4, 0.88],
+  [1.44, 0.62],
+  [1.43, 0.16],
+  [1.34, 0.02],
+  [1.2, 0.0],
+]
+
+const ARC = Math.PI * 0.96
+const Z_SQUASH = 0.8
 
 /**
- * The sunken burgundy velvet lounge: a raised plinth with a curved bolster
- * running around a recessed cushioned well, dressed with pillows and a throw.
- * It sits entirely inside the old sofa footprint, so collisions are unchanged.
+ * The burgundy velvet lounge: a single curved upholstered shell revolved from
+ * one profile and squashed into an ellipse, with three proportioned seat
+ * cushions and a few scatters. It sits inside the old sofa footprint, so
+ * collisions are unchanged.
  */
 export function VelvetPit() {
   const low = useLowQuality()
   const velvet = useVelvet('#5c1230')
   const velvetLight = useVelvet('#7d1f42')
-  const plinth = useLinen('#4a3b34', 3)
-  const seg = low ? 18 : 28
-  const bolster = useMemo(
-    () => tufted(new THREE.TorusGeometry(1.2, 0.3, low ? 10 : 14, seg, Math.PI * 1.35), 9, 0.06),
-    [low, seg],
-  )
-  const seatRing = useMemo(
-    () => tufted(new THREE.TorusGeometry(0.86, 0.2, low ? 8 : 12, seg, Math.PI * 2), 9, 0.1),
-    [low, seg],
+  const seg = low ? 20 : 40
+
+  const shell = useMemo(() => {
+    const pts = SOFA_PROFILE.map(([r, y]) => new THREE.Vector2(r, y))
+    const g = new THREE.LatheGeometry(pts, seg, -ARC / 2, ARC)
+    // the upholstery breathes: a shallow swell between the seams rather than
+    // the dead-straight extrusion a lathe gives you
+    const p = g.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i)
+      const y = p.getY(i)
+      const z = p.getZ(i)
+      const a = Math.atan2(z, x)
+      const swell = 1 + Math.sin(a * 6) * 0.012 * Math.min(1, y * 2)
+      p.setX(i, x * swell)
+      p.setZ(i, z * swell)
+    }
+    p.needsUpdate = true
+    g.computeVertexNormals()
+    return g
+  }, [seg])
+
+  // the two open ends of the revolve, capped with the same outline so the arms
+  // read as solid upholstery instead of a hollow shell
+  const cap = useMemo(() => {
+    const s = new THREE.Shape(SOFA_PROFILE.map(([r, y]) => new THREE.Vector2(r, y)))
+    s.autoClose = true
+    return new THREE.ShapeGeometry(s)
+  }, [])
+  const capMat = useMemo(() => velvet.clone(), [velvet])
+  capMat.side = THREE.DoubleSide
+
+  const seats = useMemo(() => [-0.62, 0, 0.62], [])
+  const scatters = useMemo(
+    () =>
+      [
+        { a: -0.8, c: '#b98a4e', r: 0.24 },
+        { a: -0.26, c: '#ddcbb0', r: 0.21 },
+        { a: 0.3, c: '#8f3a52', r: 0.23 },
+        { a: 0.8, c: '#a98459', r: 0.21 },
+      ] as const,
+    [],
   )
 
   return (
-    <group position={[-3.8, 0, 3.6]}>
-      {/* plinth the pit is cut into */}
-      <Soft args={[3.4, 0.32, 1.6]} radius={0.09} receiveShadow position={[0, 0.16, 0.12]} material={plinth} />
-      <mesh receiveShadow position={[0, 0.33, -0.66]} material={plinth}>
-        <boxGeometry args={[3.4, 0.02, 0.12]} />
-      </mesh>
+    <group position={[-3.8, 0, 3.24]} scale={[1, 1, Z_SQUASH]}>
+      <mesh geometry={shell} castShadow receiveShadow material={velvet} />
+      {[-ARC / 2, ARC / 2].map((a, i) => (
+        <mesh key={i} geometry={cap} castShadow material={capMat} rotation={[0, a - Math.PI / 2, 0]} />
+      ))}
 
-      {/* the well: recessed velvet floor */}
-      <mesh receiveShadow position={[0, 0.2, 0.1]} rotation={[-Math.PI / 2, 0, 0]} material={velvet}>
-        <circleGeometry args={[1.18, seg]} />
-      </mesh>
-
-      {/* curved bolster around the back half of the well */}
-      <mesh
-        geometry={bolster}
-        castShadow
-        receiveShadow
-        position={[0, 0.36, 0.1]}
-        rotation={[Math.PI / 2, 0, 0]}
-        material={velvet}
-      />
-      {/* seat pad ring, slightly lighter so the curve reads */}
-      <mesh
-        geometry={seatRing}
-        castShadow
-        receiveShadow
-        position={[0, 0.26, 0.1]}
-        rotation={[Math.PI / 2, 0, 0]}
-        material={velvetLight}
-      />
-
-      {/* scatter cushions */}
-      {[
-        [-0.86, 0.5, -0.34, 0.34, '#d8a24a'],
-        [0.9, 0.5, -0.3, 0.3, '#a8455f'],
-        [-0.16, 0.46, -0.62, 0.26, '#e6d6bd'],
-        [0.42, 0.44, 0.52, 0.28, '#8d2f52'],
-        [-0.52, 0.47, 0.44, 0.27, '#b4536f'],
-        [0.18, 0.52, -0.48, 0.24, '#caa06a'],
-      ].map(([x, y, z, r, c], i) => (
+      {/* seat cushions: three, proportioned to a real seat, following the arc */}
+      {seats.map((a, i) => (
         <mesh
           key={i}
-          geometry={pillowGeometry(Number(r) * 2.1, Number(r) * 0.8, Number(r) * 1.7)}
+          geometry={pillowGeometry(0.8, 0.14, 0.58, 0.2)}
           castShadow
           receiveShadow
-          position={[Number(x), Number(y), Number(z)]}
-          rotation={[0.3 + i * 0.2, i * 0.9, 0.2]}
+          position={[Math.sin(a) * 0.93, 0.525, Math.cos(a) * 0.93]}
+          rotation={[0, a, 0]}
+          scale={[1, 1, 1 / Z_SQUASH]}
+          material={velvetLight}
+        />
+      ))}
+
+      {/* scatter cushions propped against the back */}
+      {scatters.map((s, i) => (
+        <mesh
+          key={i}
+          geometry={pillowGeometry(s.r * 2, s.r * 1.9, s.r * 0.62, 0.42)}
+          castShadow
+          receiveShadow
+          position={[Math.sin(s.a) * 1.02, 0.63 + s.r * 0.8, Math.cos(s.a) * 1.02]}
+          rotation={[-0.34, s.a, 0.06 * (i % 2 ? 1 : -1)]}
+          scale={[1, 1, 1 / Z_SQUASH]}
         >
-          <meshStandardMaterial map={fabricTexture()} color={String(c)} roughness={0.95} />
+          <meshStandardMaterial map={fabricTexture()} color={s.c} roughness={0.95} />
         </mesh>
       ))}
 
-      {/* satin throw spilling over the rim */}
-      <mesh castShadow position={[1.02, 0.44, 0.26]} rotation={[0.5, -0.4, 0.3]} scale={[1, 0.5, 1.5]}>
-        <sphereGeometry args={[0.3, low ? 14 : 26, low ? 10 : 18]} />
-        {low ? (
-          <meshStandardMaterial color="#4d6f38" roughness={0.35} />
-        ) : (
-          <meshPhysicalMaterial color="#4d6f38" roughness={0.35} sheen={1} sheenColor="#b9d98a" />
-        )}
+      {/* knitted throw folded over the seat, following the arc rather than
+          balling up on the arm */}
+      <mesh
+        castShadow
+        geometry={pillowGeometry(0.62, 0.05, 0.5, 0.18)}
+        position={[Math.sin(0.92) * 0.9, 0.61, Math.cos(0.92) * 0.9]}
+        rotation={[0.06, 0.92, 0.04]}
+        scale={[1, 1, 1 / Z_SQUASH]}
+      >
+        <meshStandardMaterial map={fabricTexture()} color="#c9b089" roughness={0.98} />
       </mesh>
     </group>
   )

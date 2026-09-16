@@ -132,6 +132,59 @@ export function fabricTexture(): THREE.Texture {
   })
 }
 
+/**
+ * A leaf surface in leaf space: midrib up the centre of the V axis, veins
+ * branching out to the edges, mottled chlorophyll between them. Leaves are
+ * UV-mapped so one tile covers exactly one blade.
+ */
+export function leafTexture(): THREE.Texture {
+  return make(
+    'leaf',
+    256,
+    256,
+    (ctx, w, h) => {
+      const g = ctx.createLinearGradient(0, h, 0, 0)
+      g.addColorStop(0, '#2c5f3a')
+      g.addColorStop(0.55, '#3d7d48')
+      g.addColorStop(1, '#4f9553')
+      ctx.fillStyle = g
+      ctx.fillRect(0, 0, w, h)
+      // mottling
+      for (let i = 0; i < 220; i++) {
+        const r = 6 + Math.random() * 26
+        ctx.fillStyle = `rgba(${Math.random() > 0.5 ? '120,170,110' : '30,70,45'},0.07)`
+        ctx.beginPath()
+        ctx.ellipse(Math.random() * w, Math.random() * h, r, r * 0.6, Math.random(), 0, Math.PI * 2)
+        ctx.fill()
+      }
+      // midrib
+      ctx.strokeStyle = 'rgba(190,220,160,0.5)'
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.moveTo(w / 2, h)
+      ctx.lineTo(w / 2, 0)
+      ctx.stroke()
+      // veins, angled toward the tip on both sides
+      ctx.lineWidth = 2
+      ctx.strokeStyle = 'rgba(175,205,150,0.34)'
+      for (let i = 1; i < 14; i++) {
+        const y = h - (i / 14) * h
+        for (const s of [-1, 1]) {
+          ctx.beginPath()
+          ctx.moveTo(w / 2, y)
+          ctx.quadraticCurveTo(w / 2 + s * w * 0.28, y - h * 0.03, w / 2 + s * w * 0.5, y - h * 0.08)
+          ctx.stroke()
+        }
+      }
+      noise(ctx, w, h, 10, 1)
+    },
+    (t) => {
+      t.wrapS = THREE.ClampToEdgeWrapping
+      t.wrapT = THREE.ClampToEdgeWrapping
+    },
+  )
+}
+
 export function concreteTexture(): THREE.Texture {
   return make('concrete', 512, 512, (ctx, w, h) => {
     ctx.fillStyle = '#23242c'

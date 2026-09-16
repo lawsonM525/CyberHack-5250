@@ -4,7 +4,7 @@ import { ROOM, DOORWAY } from './world'
 import { plasterTexture, woodTexture } from './textures'
 import { Soft } from './soft'
 import { artPlate, posterPlate, rugPlate } from './assets'
-import { Fern, HangingVine, IvyFall, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
+import { BroadLeafPlant, Fern, HangingVine, IvyFall, Jasmine, Monstera, NightOrchid, Planter } from './plants'
 import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, NightHatch, RecordConsole, Speaker, Vanity } from './furniture'
 import {
   Curtains,
@@ -320,7 +320,7 @@ export function Apartment({
       {!low && <pointLight position={[-0.15, 1.5, -3.7]} color="#9ae0b8" intensity={0.8} distance={4.5} decay={2} />}
 
       {/* layered greenery: floor pots, hanging baskets and vines at three heights */}
-      <CornerPalm position={[5.5, 0.05, -2.8]} scale={1.15} />
+      <BroadLeafPlant position={[5.5, 0.05, -2.8]} height={1.3} leaves={12} />
       <HangingVine position={[-5.3, 2.8, -1.4]} length={1.3} strands={6} />
       <HangingVine position={[3.0, 2.85, 1.0]} length={1.0} strands={5} />
       <HangingVine position={[-2.6, 2.86, -4.05]} length={1.5} strands={7} />
@@ -330,9 +330,9 @@ export function Apartment({
       <Planter position={[-5.5, 0, 0.2]} radius={0.24} height={0.34} color="#9c5a3c" />
       <Fern position={[-5.5, 0.34, 0.2]} scale={1.1} />
       <Planter position={[-5.4, 0, -1.15]} radius={0.3} height={0.5} color="#cdbba0" />
-      <Monstera position={[-5.4, 0.52, -1.15]} scale={1.45} />
+      <BroadLeafPlant position={[-5.4, 0.52, -1.15]} height={1.15} leaves={11} />
       <Planter position={[2.5, 0, -3.4]} radius={0.27} height={0.44} color="#6f7a72" />
-      <CornerPalm position={[2.5, 0.44, -3.4]} scale={0.85} />
+      <BroadLeafPlant position={[2.5, 0.44, -3.4]} height={0.82} leaves={9} />
 
       {/* ivy falling off the window head and the shelf, the reference's
           strongest organic line against all that straight glazing */}

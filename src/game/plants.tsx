@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { leafTexture } from './textures'
 
 /** A simple pointed leaf outline in the XY plane, tip at +Y. */
 function leafShape(len: number, width: number, notch = false): THREE.Shape {
@@ -45,6 +46,7 @@ function curl(g: THREE.BufferGeometry, len: number, width: number, droop: number
 function useLeafGeo(len: number, width: number, notch = false, droop = 0.6) {
   return useMemo(() => {
     const g = new THREE.ShapeGeometry(leafShape(len, width, notch), 18)
+    leafUvs(g, len, width)
     curl(g, len, width, droop)
     return g
   }, [len, width, notch, droop])
@@ -133,7 +135,8 @@ export function Planter({
 }
 
 export function Monstera({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const geo = useLeafGeo(0.52, 0.26, true, 0.95)
+  const geo = useLeafGeo(0.5, 0.4, true, 0.9)
+  const map = useMemo(() => leafTexture(), [])
   const leaves = useMemo(
     () =>
       Array.from({ length: 9 }, (_, i) => ({
@@ -160,7 +163,8 @@ export function Monstera({ position, scale = 1 }: { position: [number, number, n
             scale={l.s}
           >
             <meshStandardMaterial
-              color={i % 2 ? greenA : greenB}
+              map={map}
+              color={i % 2 ? '#c8ddb8' : '#9dc396'}
               roughness={0.62}
               side={THREE.DoubleSide}
             />
@@ -287,6 +291,116 @@ export function NightOrchid({ position, scale = 1 }: { position: [number, number
           </mesh>
         </group>
       ))}
+    </group>
+  )
+}
+
+/** A broad ovate blade: wide shoulders, rounded belly, drawn-out tip. */
+function broadLeafShape(len: number, width: number): THREE.Shape {
+  const s = new THREE.Shape()
+  s.moveTo(0, 0)
+  s.bezierCurveTo(width * 0.85, len * 0.1, width, len * 0.42, width * 0.46, len * 0.82)
+  s.bezierCurveTo(width * 0.26, len * 0.95, width * 0.1, len, 0, len)
+  s.bezierCurveTo(-width * 0.1, len, -width * 0.26, len * 0.95, -width * 0.46, len * 0.82)
+  s.bezierCurveTo(-width, len * 0.42, -width * 0.85, len * 0.1, 0, 0)
+  return s
+}
+
+/** Maps the blade's own extent onto one tile of the leaf texture. */
+function leafUvs(g: THREE.BufferGeometry, len: number, width: number) {
+  const p = g.attributes.position as THREE.BufferAttribute
+  const uv = g.attributes.uv as THREE.BufferAttribute
+  for (let i = 0; i < p.count; i++) {
+    uv.setXY(i, (p.getX(i) / width + 1) / 2, Math.max(0, Math.min(1, p.getY(i) / len)))
+  }
+  uv.needsUpdate = true
+}
+
+/**
+ * The room's hero foliage: a tub plant of broad veined blades on arching
+ * petioles — the fiddle-leaf/bird-of-paradise silhouette the reference leans
+ * on. Blades and stems are merged into one geometry, so the whole plant is a
+ * single draw call.
+ */
+export function BroadLeafPlant({
+  position,
+  scale = 1,
+  leaves = 11,
+  height = 1.15,
+}: {
+  position: [number, number, number]
+  scale?: number
+  leaves?: number
+  height?: number
+}) {
+  const map = useMemo(() => leafTexture(), [])
+  const geo = useMemo(() => {
+    const parts: THREE.BufferGeometry[] = []
+    const rand = (n: number) => Math.abs((Math.sin(n * 91.7) * 4375.85) % 1)
+    for (let i = 0; i < leaves; i++) {
+      const t = i / leaves
+      const a = t * Math.PI * 2 * 1.618
+      const lean = 0.38 + rand(i + 3) * 0.5
+      // short petioles, long blades: leaves have to start low or the plant
+      // reads as a spider of bare stalks with paddles on the end
+      const stalk = height * (0.16 + rand(i * 5 + 1) * 0.46)
+      const len = height * (0.42 + rand(i * 7 + 2) * 0.24)
+      const width = len * (0.54 + rand(i * 11 + 4) * 0.12)
+
+      // petiole: a real curve from the crown out to where the blade starts
+      const pts: THREE.Vector3[] = []
+      for (let k = 0; k <= 6; k++) {
+        const u = k / 6
+        pts.push(
+          new THREE.Vector3(
+            Math.cos(a) * Math.sin(lean) * stalk * u * u,
+            stalk * u * (1 - 0.12 * u),
+            Math.sin(a) * Math.sin(lean) * stalk * u * u,
+          ),
+        )
+      }
+      const curve = new THREE.CatmullRomCurve3(pts)
+      const stem = new THREE.TubeGeometry(curve, 8, 0.013, 5, false)
+      // hold the stem on one green patch of the leaf sheet instead of letting
+      // it smear the midrib and veins along its length
+      const suv = stem.attributes.uv as THREE.BufferAttribute
+      for (let v = 0; v < suv.count; v++) suv.setXY(v, 0.78, 0.3)
+      suv.needsUpdate = true
+      parts.push(stem)
+
+      const tip = curve.getPointAt(1)
+      const dir = curve.getTangentAt(1)
+      const blade = new THREE.ShapeGeometry(broadLeafShape(len, width), 14)
+      leafUvs(blade, len, width)
+      // cup across the midrib and let the tip nod over
+      const bp = blade.attributes.position as THREE.BufferAttribute
+      for (let v = 0; v < bp.count; v++) {
+        const x = bp.getX(v)
+        const y = bp.getY(v)
+        const ny = Math.max(0, Math.min(1, y / len))
+        bp.setZ(v, -((x / width) ** 2) * width * 0.42 - ny * ny * len * 0.34)
+      }
+      bp.needsUpdate = true
+      blade.computeVertexNormals()
+      blade.rotateZ((rand(i * 13 + 6) - 0.5) * 0.5)
+      // stand the blade up along the petiole's tangent
+      const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), dir, new THREE.Vector3(0, 1, 0))
+      blade.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2))
+      blade.applyMatrix4(m)
+      blade.translate(tip.x, tip.y, tip.z)
+      parts.push(blade)
+    }
+    const merged = mergeGeometries(parts, false) ?? new THREE.BufferGeometry()
+    parts.forEach((g) => g.dispose())
+    merged.computeVertexNormals()
+    return merged
+  }, [leaves, height])
+
+  return (
+    <group position={position} scale={scale}>
+      <mesh geometry={geo} castShadow receiveShadow>
+        <meshStandardMaterial map={map} roughness={0.66} side={THREE.DoubleSide} />
+      </mesh>
     </group>
   )
 }
