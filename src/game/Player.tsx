@@ -258,15 +258,17 @@ export function Player({
         const mesh = o as THREE.Mesh
         if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh || !mesh.visible) return
         if (self && isDescendant(mesh, self)) return
+        // tagged first: a rail mid-fade is transparent, and dropping it here
+        // would strand it ghosted with nothing left to fade it back in
+        if (isFadeable(mesh)) {
+          fade.push(mesh)
+          return
+        }
         const material = mesh.material
         const seeThrough = Array.isArray(material)
           ? material.some((m) => m.transparent)
           : material.transparent
         if (seeThrough) return
-        if (isFadeable(mesh)) {
-          fade.push(mesh)
-          return
-        }
         box.setFromObject(mesh)
         if (box.isEmpty()) return
         const d = box.distanceToPoint(pivot)
