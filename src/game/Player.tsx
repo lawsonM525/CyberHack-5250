@@ -26,7 +26,7 @@ const TMP_SIZE = new THREE.Vector3()
 const KNEES = new THREE.Vector3()
 const SIDE = new THREE.Vector3()
 /** How much of a rail survives when the lens is looking through it. */
-const FADED = 0.16
+const FADED = 0.05
 
 /** Thin metalwork the boom cannot dodge, tagged where it is built. */
 function isFadeable(node: THREE.Object3D): boolean {
@@ -359,6 +359,8 @@ export function Player({
         material.opacity += (want - material.opacity) * k
         material.transparent = material.opacity < 0.99
         material.depthWrite = !material.transparent
+        // a ghosted bar that still stripes her with its shadow is no ghost
+        mesh.castShadow = material.opacity > 0.7
       }
     }
 
