@@ -324,7 +324,7 @@ export const useGame = create<GameState>((set, get) => ({
       inspectingId: id,
       inspected: fresh ? [...s.inspected, id] : s.inspected,
     }))
-    if (fresh && id.startsWith('plant-')) get().earn(CLUE_BOUNTY, 'tag logged')
+    if (fresh && id.startsWith('plant-')) get().earn(CLUE_BOUNTY, 'plant tag logged')
   },
 
   closeOverlay: () => set({ overlay: null, inspectingId: null }),
@@ -368,8 +368,8 @@ export const useGame = create<GameState>((set, get) => ({
   earn: (amount, reason) => {
     set((s) => ({ credits: s.credits + amount }))
     get().notify({
-      title: `+${amount} \u00a2r`,
-      body: reason,
+      title: 'credits',
+      body: `+${amount} \u00a2r \u2014 ${reason}`,
       accent: '#ffd07a',
       kind: 'credit',
     })
