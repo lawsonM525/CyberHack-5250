@@ -597,7 +597,7 @@ export function Skybridge({ deployedAt }: { deployedAt: number | null }) {
       </mesh>
       {/* side rails */}
       {[-1, 1].map((s) => (
-        <group key={s}>
+        <group key={s} userData={{ camFade: true }}>
           <mesh position={[3.6 + s * 0.62, 0.52, centerZ]}>
             <boxGeometry args={[0.05, 0.05, len]} />
             <meshStandardMaterial color="#454a54" metalness={0.7} roughness={0.4} />
@@ -611,7 +611,7 @@ export function Skybridge({ deployedAt }: { deployedAt: number | null }) {
       {Array.from({ length: Math.floor(len / 1.1) }, (_, i) => {
         const z = -0.5 - i * 1.1
         return (
-          <group key={i}>
+          <group key={i} userData={{ camFade: true }}>
             {[-1, 1].map((s) => (
               <mesh key={s} position={[3.6 + s * 0.62, 0.27, z]}>
                 <cylinderGeometry args={[0.018, 0.018, 0.5, 6]} />

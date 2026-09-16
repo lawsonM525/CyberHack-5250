@@ -365,11 +365,39 @@ export function Player({
     if (import.meta.env.DEV) {
       ;(window as unknown as { __cam?: unknown }).__cam = {
         occluders: occluders.current.length,
+        fadeable: fadeable.current.length,
         boxedIn,
         overhead,
         planRoom: room,
         lensDist,
         pivot: pivot.toArray(),
+      }
+      // names whatever is actually standing in front of her right now, tagged
+      // or not, so a crossing can be traced back to the geometry that built it
+      ;(window as unknown as { __whatBlocks?: unknown }).__whatBlocks = () => {
+        const eye = camPos.current
+        const found = new Map<string, { at: number[]; faded: boolean }>()
+        const self = root.current
+        SIDE.set(pivot.x - eye.x, 0, pivot.z - eye.z).cross(UP).normalize().multiplyScalar(0.21)
+        for (const h of [0.25, 0.65, 1.05, 1.45]) {
+          for (const side of [-1, 0, 1]) {
+            const ray = KNEES.set(pivot.x + SIDE.x * side, h, pivot.z + SIDE.z * side).sub(eye)
+            const span = ray.length()
+            if (span < 0.02) continue
+            caster.near = 0.02
+            caster.far = span
+            caster.set(eye, ray.divideScalar(span))
+            for (const hit of caster.intersectObject(scene, true)) {
+              const mesh = hit.object as THREE.Mesh
+              if (!mesh.isMesh || (self && isDescendant(mesh, self))) continue
+              found.set(`${mesh.id}`, {
+                at: mesh.getWorldPosition(new THREE.Vector3()).toArray().map((v) => Math.round(v * 100) / 100),
+                faded: isFadeable(mesh),
+              })
+            }
+          }
+        }
+        return Object.fromEntries(found)
       }
     }
 
