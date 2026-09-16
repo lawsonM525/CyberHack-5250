@@ -24,6 +24,7 @@ const MIN_LENS = 0.85
 const UP = new THREE.Vector3(0, 1, 0)
 const TMP_SIZE = new THREE.Vector3()
 const KNEES = new THREE.Vector3()
+const SIDE = new THREE.Vector3()
 /** How much of a rail survives when the lens is looking through it. */
 const FADED = 0.16
 
@@ -322,22 +323,33 @@ export function Player({
     }
 
     camera.position.copy(camPos.current)
-    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD + 0.12 - pinch * 0.75, pivot.z)
+    // aiming at her head from below puts her feet off the bottom of the frame,
+    // so the lower the lens sits the further down the body it looks
+    const droop = Math.max(0, -camPitch.current) * 1.1
+    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD + 0.12 - pinch * 0.75 - droop, pivot.z)
 
     // balusters are too thin for the boom to solve around without shoving the
     // lens into her back, so the ones in the way dissolve instead
     if (fadeable.current.length > 0) {
       const eye = camPos.current
       const blocking = new Set<THREE.Object3D>()
-      // head and knees, so a rail that only crosses her legs still dissolves
-      for (const target of [pivot, KNEES.set(pivot.x, 0.4, pivot.z)]) {
-        const ray = target.clone().sub(eye)
-        const span = ray.length()
-        if (span < 0.02) continue
-        caster.near = 0.02
-        caster.far = span
-        caster.set(eye, ray.divideScalar(span))
-        for (const hit of caster.intersectObjects(fadeable.current, false)) blocking.add(hit.object)
+      // her whole silhouette, not just her head: a single cap can cross her
+      // thighs while both a head ray and a knee ray sail past it
+      SIDE.set(pivot.x - eye.x, 0, pivot.z - eye.z).cross(UP).normalize().multiplyScalar(0.21)
+      for (const h of [0.25, 0.65, 1.05, 1.45]) {
+        for (const side of [-1, 0, 1]) {
+          const ray = KNEES.set(
+            pivot.x + SIDE.x * side,
+            h,
+            pivot.z + SIDE.z * side,
+          ).sub(eye)
+          const span = ray.length()
+          if (span < 0.02) continue
+          caster.near = 0.02
+          caster.far = span
+          caster.set(eye, ray.divideScalar(span))
+          for (const hit of caster.intersectObjects(fadeable.current, false)) blocking.add(hit.object)
+        }
       }
       const k = Math.min(1, delta * 10)
       for (const mesh of fadeable.current) {
