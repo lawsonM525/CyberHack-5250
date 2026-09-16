@@ -175,36 +175,19 @@ export function Monstera({ position, scale = 1 }: { position: [number, number, n
   )
 }
 
+/**
+ * A low table plant: the same broad veined blades as the hero tub plant, kept
+ * short and spread wide so it reads as a full rosette rather than a spray of
+ * thin fronds.
+ */
 export function Fern({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
-  const frondGeo = usePinnateGeo(0.36, 0.1, 0.035, 7, 0.5)
-  const fronds = useMemo(
-    () =>
-      Array.from({ length: 14 }, (_, i) => ({
-        a: (i / 14) * Math.PI * 2,
-        tilt: 0.5 + ((i * 13) % 7) * 0.09,
-        len: 0.34 + ((i * 7) % 5) * 0.05,
-      })),
-    [],
-  )
+  const map = useMemo(() => leafTexture(), [])
+  const geo = useMemo(() => broadLeafGeometry(13, 0.52, 7.3, 1.25), [])
   return (
     <group position={position} scale={scale}>
-      {fronds.map((f, i) => (
-        <group key={i} rotation={[0, f.a, 0]}>
-          <group rotation={[-f.tilt, 0, 0]}>
-            <mesh position={[0, f.len / 2, 0]}>
-              <cylinderGeometry args={[0.005, 0.008, f.len, 5]} />
-              <meshStandardMaterial color="#3d6b3f" roughness={0.9} />
-            </mesh>
-            <mesh geometry={frondGeo} castShadow scale={f.len / 0.36}>
-              <meshStandardMaterial
-                color={i % 3 ? greenC : greenA}
-                roughness={0.7}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-          </group>
-        </group>
-      ))}
+      <mesh geometry={geo} castShadow receiveShadow>
+        <meshStandardMaterial map={map} color="#cfe3bc" roughness={0.68} side={THREE.DoubleSide} />
+      </mesh>
     </group>
   )
 }
@@ -322,25 +305,14 @@ function leafUvs(g: THREE.BufferGeometry, len: number, width: number) {
  * on. Blades and stems are merged into one geometry, so the whole plant is a
  * single draw call.
  */
-export function BroadLeafPlant({
-  position,
-  scale = 1,
-  leaves = 11,
-  height = 1.15,
-}: {
-  position: [number, number, number]
-  scale?: number
-  leaves?: number
-  height?: number
-}) {
-  const map = useMemo(() => leafTexture(), [])
-  const geo = useMemo(() => {
+function broadLeafGeometry(leaves: number, height: number, seed: number, spread = 1): THREE.BufferGeometry {
+  {
     const parts: THREE.BufferGeometry[] = []
-    const rand = (n: number) => Math.abs((Math.sin(n * 91.7) * 4375.85) % 1)
+    const rand = (n: number) => Math.abs((Math.sin((n + seed) * 91.7) * 4375.85) % 1)
     for (let i = 0; i < leaves; i++) {
       const t = i / leaves
       const a = t * Math.PI * 2 * 1.618
-      const lean = 0.38 + rand(i + 3) * 0.5
+      const lean = (0.38 + rand(i + 3) * 0.5) * spread
       // short petioles, long blades: leaves have to start low or the plant
       // reads as a spider of bare stalks with paddles on the end
       const stalk = height * (0.16 + rand(i * 5 + 1) * 0.46)
@@ -394,7 +366,26 @@ export function BroadLeafPlant({
     parts.forEach((g) => g.dispose())
     merged.computeVertexNormals()
     return merged
-  }, [leaves, height])
+  }
+}
+
+/**
+ * The room's hero foliage: a tub plant of broad veined blades on arching
+ * petioles, merged into a single draw call.
+ */
+export function BroadLeafPlant({
+  position,
+  scale = 1,
+  leaves = 11,
+  height = 1.15,
+}: {
+  position: [number, number, number]
+  scale?: number
+  leaves?: number
+  height?: number
+}) {
+  const map = useMemo(() => leafTexture(), [])
+  const geo = useMemo(() => broadLeafGeometry(leaves, height, 0), [leaves, height])
 
   return (
     <group position={position} scale={scale}>

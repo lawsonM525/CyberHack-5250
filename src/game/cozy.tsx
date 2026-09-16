@@ -113,6 +113,64 @@ const SOFA_PROFILE: [number, number][] = [
 
 const ARC = Math.PI * 0.96
 const Z_SQUASH = 0.8
+/** How far past the seat arc the upholstery rolls over to close each arm. */
+const ROLL = 0.34
+
+/**
+ * Sweeps the profile around the arc and then, at each end, keeps sweeping
+ * while shrinking the section towards its own centre on a circular falloff.
+ * That rolls the upholstery over the arm ends into a closed, rounded volume,
+ * instead of stopping the revolve dead and papering the hole with a flat cap
+ * (which read as a thin hard slab from the room).
+ */
+function buildSofaShell(seg: number): THREE.BufferGeometry {
+  const prof = SOFA_PROFILE.map(([r, y]) => new THREE.Vector2(r, y))
+  const cx = prof.reduce((s, p) => s + p.x, 0) / prof.length
+  const capSteps = Math.max(3, Math.round(seg * 0.18))
+  const half = ARC / 2
+
+  const angles: number[] = []
+  for (let i = capSteps; i >= 1; i--) angles.push(-half - (i / capSteps) * ROLL)
+  for (let i = 0; i <= seg; i++) angles.push(-half + (i / seg) * ARC)
+  for (let i = 1; i <= capSteps; i++) angles.push(half + (i / capSteps) * ROLL)
+
+  const pos: number[] = []
+  const uv: number[] = []
+  for (let ai = 0; ai < angles.length; ai++) {
+    const t = angles[ai]
+    const over = Math.max(0, Math.abs(t) - half) / ROLL
+    // circular falloff: full section through the seat, collapsing to a point
+    // at the very end of the roll
+    const f = over > 0 ? Math.sqrt(Math.max(0, 1 - over * over)) : 1
+    for (let j = 0; j < prof.length; j++) {
+      // the section narrows towards the arm's centreline and sinks to the
+      // floor, so the roll lands on the rug instead of curling in midair
+      const r = cx + (prof[j].x - cx) * f
+      const y = prof[j].y * f
+      // shallow swell between the seams so the velvet isn't a dead extrusion
+      const swell = 1 + Math.sin(t * 6) * 0.012 * Math.min(1, y * 2) * f
+      pos.push(Math.sin(t) * r * swell, y, Math.cos(t) * r * swell)
+      uv.push(ai / (angles.length - 1), j / (prof.length - 1))
+    }
+  }
+
+  const idx: number[] = []
+  const n = prof.length
+  for (let ai = 0; ai < angles.length - 1; ai++) {
+    for (let j = 0; j < n - 1; j++) {
+      const a = ai * n + j
+      const b = a + n
+      idx.push(a, b, a + 1, a + 1, b, b + 1)
+    }
+  }
+
+  const g = new THREE.BufferGeometry()
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
+  g.setIndex(idx)
+  g.computeVertexNormals()
+  return g
+}
 
 /**
  * The burgundy velvet lounge: a single curved upholstered shell revolved from
@@ -126,35 +184,13 @@ export function VelvetPit() {
   const velvetLight = useVelvet('#7d1f42')
   const seg = low ? 20 : 40
 
-  const shell = useMemo(() => {
-    const pts = SOFA_PROFILE.map(([r, y]) => new THREE.Vector2(r, y))
-    const g = new THREE.LatheGeometry(pts, seg, -ARC / 2, ARC)
-    // the upholstery breathes: a shallow swell between the seams rather than
-    // the dead-straight extrusion a lathe gives you
-    const p = g.attributes.position as THREE.BufferAttribute
-    for (let i = 0; i < p.count; i++) {
-      const x = p.getX(i)
-      const y = p.getY(i)
-      const z = p.getZ(i)
-      const a = Math.atan2(z, x)
-      const swell = 1 + Math.sin(a * 6) * 0.012 * Math.min(1, y * 2)
-      p.setX(i, x * swell)
-      p.setZ(i, z * swell)
-    }
-    p.needsUpdate = true
-    g.computeVertexNormals()
-    return g
-  }, [seg])
-
-  // the two open ends of the revolve, capped with the same outline so the arms
-  // read as solid upholstery instead of a hollow shell
-  const cap = useMemo(() => {
-    const s = new THREE.Shape(SOFA_PROFILE.map(([r, y]) => new THREE.Vector2(r, y)))
-    s.autoClose = true
-    return new THREE.ShapeGeometry(s)
-  }, [])
-  const capMat = useMemo(() => velvet.clone(), [velvet])
-  capMat.side = THREE.DoubleSide
+  const shell = useMemo(() => buildSofaShell(seg), [seg])
+  // the rolled arms are seen from inside as well as out
+  const shellMat = useMemo(() => {
+    const m = velvet.clone()
+    m.side = THREE.DoubleSide
+    return m
+  }, [velvet])
 
   const seats = useMemo(() => [-0.62, 0, 0.62], [])
   const scatters = useMemo(
@@ -170,10 +206,7 @@ export function VelvetPit() {
 
   return (
     <group position={[-3.8, 0, 3.24]} scale={[1, 1, Z_SQUASH]}>
-      <mesh geometry={shell} castShadow receiveShadow material={velvet} />
-      {[-ARC / 2, ARC / 2].map((a, i) => (
-        <mesh key={i} geometry={cap} castShadow material={capMat} rotation={[0, a - Math.PI / 2, 0]} />
-      ))}
+      <mesh geometry={shell} castShadow receiveShadow material={shellMat} />
 
       {/* seat cushions: three, proportioned to a real seat, following the arc */}
       {seats.map((a, i) => (
