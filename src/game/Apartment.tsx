@@ -2,8 +2,9 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ROOM, DOORWAY } from './world'
 import { plasterTexture, woodTexture } from './textures'
+import { Soft } from './soft'
 import { artPlate, posterPlate, rugPlate } from './assets'
-import { Fern, HangingVine, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
+import { Fern, HangingVine, IvyFall, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
 import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, NightHatch, RecordConsole, Speaker, Vanity } from './furniture'
 import {
   Curtains,
@@ -194,12 +195,12 @@ export function Apartment({
         <planeGeometry args={[3.8, 3.4]} />
         <meshStandardMaterial map={rug} roughness={0.98} />
       </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.004, -1.5]}>
-        <planeGeometry args={[6.2, 4.4]} />
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[-0.2, 0.004, -1.6]}>
+        <planeGeometry args={[4.5, 3.3]} />
         <meshStandardMaterial map={rug} color="#b89a7a" roughness={0.99} />
       </mesh>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0.1, 0.008, -1.5]}>
-        <planeGeometry args={[3.4, 2.4]} />
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0.35]} position={[-0.4, 0.008, -1.8]}>
+        <planeGeometry args={[2.3, 1.7]} />
         <meshStandardMaterial map={rug} color="#8a5f52" roughness={0.99} />
       </mesh>
 
@@ -333,10 +334,34 @@ export function Apartment({
       <Planter position={[2.5, 0, -3.4]} radius={0.27} height={0.44} color="#6f7a72" />
       <CornerPalm position={[2.5, 0.44, -3.4]} scale={0.85} />
 
+      {/* ivy falling off the window head and the shelf, the reference's
+          strongest organic line against all that straight glazing */}
+      <IvyFall position={[-1.0, 2.82, -3.96]} strands={8} length={1.9} spread={1.1} />
+      <IvyFall position={[1.5, 2.82, -3.96]} strands={6} length={1.4} spread={0.8} />
+      <IvyFall position={[-5.48, 2.4, -2.5]} rotation={[0, Math.PI / 2, 0]} strands={5} length={1.6} spread={0.7} />
+      <IvyFall position={[-1.95, 2.42, 3.78]} rotation={[0, Math.PI, 0]} strands={4} length={1.0} spread={0.5} />
+
       {/* soft furnishings in the open floor the opening camera looks across */}
       <Pouf position={[-1.6, 0, -1.5]} color="#8a5a3c" radius={0.38} />
       <Pouf position={[1.75, 0, -0.9]} color="#5c4a60" radius={0.32} />
+      <Pouf position={[-0.9, 0, -2.6]} color="#6a3a4e" radius={0.3} />
       <SideTable position={[0.35, 0, -2.3]} />
+      {/* things left out on the floor: what stops a rug reading as empty */}
+      <group position={[0.55, 0, -1.15]} rotation={[0, 0.4, 0]}>
+        {[0, 1, 2].map((i) => (
+          <Soft args={[0.3, 0.045, 0.22]} key={i} castShadow position={[i * 0.02, 0.025 + i * 0.048, i * 0.015]} rotation={[0, i * 0.24, 0]}>
+            <meshStandardMaterial color={['#5d3a5a', '#37536b', '#96603a'][i]} roughness={0.9} />
+          </Soft>
+        ))}
+        <mesh castShadow position={[0.26, 0.055, -0.16]}>
+          <cylinderGeometry args={[0.052, 0.042, 0.11, 14, 1, true]} />
+          <meshStandardMaterial color="#e8dcc8" roughness={0.45} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh receiveShadow position={[0.26, 0.008, -0.16]}>
+          <cylinderGeometry args={[0.09, 0.09, 0.012, 16]} />
+          <meshStandardMaterial color="#e8dcc8" roughness={0.45} />
+        </mesh>
+      </group>
       <MushroomLamp position={[-2.46, 0.0, -4.0]} scale={1.15} intensity={11} />
       <Wardrobe />
       <Curtains low={low} />

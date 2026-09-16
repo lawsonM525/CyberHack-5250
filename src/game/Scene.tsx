@@ -168,7 +168,8 @@ export function Scene({ paused }: { paused: boolean }) {
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       // seated where the boom will be, so the first frames are already the
       // gameplay view even while the heroine is still loading
-      camera={{ fov: 52, near: 0.1, far: 500, position: bootCamera }}
+      // a longer lens: 52° pushed her into the distance and stretched the floor
+      camera={{ fov: 46, near: 0.1, far: 500, position: bootCamera }}
     >
       <Rig quality={quality} />
       <LightBudget quality={quality} />

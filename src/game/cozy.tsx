@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { Soft } from './soft'
+import { Soft, pillowGeometry } from './soft'
 import { fabricTexture, woodTexture } from './textures'
 import { glowPlate, shadePlate } from './assets'
 import { useLowQuality } from './quality'
@@ -88,6 +88,28 @@ function useWalnut(repeat = 1.4) {
 }
 
 /**
+ * Tufts a ring: pinches the tube at regular intervals around the axis so a
+ * bolster reads as a run of buttoned cushions instead of one long sausage.
+ */
+function tufted(geo: THREE.BufferGeometry, tufts: number, depth = 0.12) {
+  const p = geo.attributes.position as THREE.BufferAttribute
+  const v = new THREE.Vector3()
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i)
+    const a = Math.atan2(v.y, v.x)
+    const pinch = 1 - depth * (0.5 + 0.5 * Math.cos(a * tufts))
+    p.setZ(i, v.z * pinch)
+    const r = Math.hypot(v.x, v.y)
+    const k = r > 0 ? (r - (1 - pinch) * depth * 0.6) / r : 1
+    p.setX(i, v.x * k)
+    p.setY(i, v.y * k)
+  }
+  p.needsUpdate = true
+  geo.computeVertexNormals()
+  return geo
+}
+
+/**
  * The sunken burgundy velvet lounge: a raised plinth with a curved bolster
  * running around a recessed cushioned well, dressed with pillows and a throw.
  * It sits entirely inside the old sofa footprint, so collisions are unchanged.
@@ -98,6 +120,14 @@ export function VelvetPit() {
   const velvetLight = useVelvet('#7d1f42')
   const plinth = useLinen('#4a3b34', 3)
   const seg = low ? 18 : 28
+  const bolster = useMemo(
+    () => tufted(new THREE.TorusGeometry(1.2, 0.3, low ? 10 : 14, seg, Math.PI * 1.35), 9, 0.06),
+    [low, seg],
+  )
+  const seatRing = useMemo(
+    () => tufted(new THREE.TorusGeometry(0.86, 0.2, low ? 8 : 12, seg, Math.PI * 2), 9, 0.1),
+    [low, seg],
+  )
 
   return (
     <group position={[-3.8, 0, 3.6]}>
@@ -113,13 +143,23 @@ export function VelvetPit() {
       </mesh>
 
       {/* curved bolster around the back half of the well */}
-      <mesh castShadow receiveShadow position={[0, 0.36, 0.1]} rotation={[Math.PI / 2, 0, 0]} material={velvet}>
-        <torusGeometry args={[1.2, 0.3, low ? 8 : 12, seg, Math.PI * 1.35]} />
-      </mesh>
+      <mesh
+        geometry={bolster}
+        castShadow
+        receiveShadow
+        position={[0, 0.36, 0.1]}
+        rotation={[Math.PI / 2, 0, 0]}
+        material={velvet}
+      />
       {/* seat pad ring, slightly lighter so the curve reads */}
-      <mesh castShadow receiveShadow position={[0, 0.26, 0.1]} rotation={[Math.PI / 2, 0, 0]} material={velvetLight}>
-        <torusGeometry args={[0.86, 0.2, low ? 8 : 10, seg, Math.PI * 2]} />
-      </mesh>
+      <mesh
+        geometry={seatRing}
+        castShadow
+        receiveShadow
+        position={[0, 0.26, 0.1]}
+        rotation={[Math.PI / 2, 0, 0]}
+        material={velvetLight}
+      />
 
       {/* scatter cushions */}
       {[
@@ -132,13 +172,12 @@ export function VelvetPit() {
       ].map(([x, y, z, r, c], i) => (
         <mesh
           key={i}
+          geometry={pillowGeometry(Number(r) * 2.1, Number(r) * 0.8, Number(r) * 1.7)}
           castShadow
           receiveShadow
           position={[Number(x), Number(y), Number(z)]}
           rotation={[0.3 + i * 0.2, i * 0.9, 0.2]}
-          scale={[1.12, 0.66, 0.94]}
         >
-          <sphereGeometry args={[Number(r), low ? 14 : 24, low ? 10 : 18]} />
           <meshStandardMaterial map={fabricTexture()} color={String(c)} roughness={0.95} />
         </mesh>
       ))}
@@ -211,6 +250,90 @@ export function MushroomLamp({
   )
 }
 
+/**
+ * A hung garment: lathed from a shoulder-to-hem profile with the radius
+ * rippled around the axis, so it falls in folds and flares at the hem instead
+ * of hanging as the tube a cylinder gives you.
+ */
+function Garment({
+  x,
+  color,
+  width,
+  height,
+  flare = 1.5,
+  low,
+}: {
+  x: number
+  color: string
+  width: number
+  height: number
+  flare?: number
+  low: boolean
+}) {
+  const geo = useMemo(() => {
+    // collar, shoulders, waist, hip, hem: a dress profile, not a cone
+    const profile: [number, number][] = [
+      [0, 0.1],
+      [0.06, 0.42],
+      [0.12, 0.5],
+      [0.34, 0.4],
+      [0.62, 0.46 * flare],
+      [0.97, 0.55 * flare],
+      [1, 0.52 * flare],
+    ]
+    const pts: THREE.Vector2[] = []
+    const rows = 22
+    for (let i = 0; i <= rows; i++) {
+      const t = i / rows
+      let k = 1
+      while (k < profile.length - 1 && profile[k][0] < t) k++
+      const [t0, r0] = profile[k - 1]
+      const [t1, r1] = profile[k]
+      const f = t1 === t0 ? 0 : (t - t0) / (t1 - t0)
+      // smoothstep between the control points so the cloth has no hard shelves
+      const s = f * f * (3 - 2 * f)
+      pts.push(new THREE.Vector2(width * (r0 + (r1 - r0) * s), -height * t))
+    }
+    const g = new THREE.LatheGeometry(pts, low ? 12 : 24)
+    const p = g.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < p.count; i++) {
+      const px = p.getX(i)
+      const pz = p.getZ(i)
+      const a = Math.atan2(pz, px)
+      const t = -p.getY(i) / height
+      // folds: deepest at the hem, gone at the shoulder
+      const fold = 1 + Math.sin(a * 9) * 0.1 * t + Math.sin(a * 4 + 1.4) * 0.06 * t
+      p.setX(i, px * fold)
+      p.setZ(i, pz * fold)
+    }
+    p.needsUpdate = true
+    g.computeVertexNormals()
+    return g
+  }, [width, height, flare, low])
+  return (
+    <group position={[x, 1.94, 0.06]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.035, 0.005, 6, 12, Math.PI]} />
+        <meshStandardMaterial color="#b9b2a6" metalness={0.8} roughness={0.3} />
+      </mesh>
+      {/* shoulders: the hanger's bar, softened */}
+      <mesh castShadow position={[0, -0.05, 0]} rotation={[0, x * 3.1, 0.02]} scale={[1, 1, 0.55]}>
+        <sphereGeometry args={[width * 0.44, low ? 8 : 14, low ? 6 : 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial map={fabricTexture()} color={color} roughness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh
+        geometry={geo}
+        castShadow
+        position={[0, -0.05, 0]}
+        rotation={[0, x * 3.1, 0.02]}
+        scale={[1, 1, 0.55]}
+      >
+        <meshStandardMaterial map={fabricTexture()} color={color} roughness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
+}
+
 /** Open wardrobe: warm-lit carcass, rail, hung garments, shoes and baskets. */
 export function Wardrobe() {
   const low = useLowQuality()
@@ -244,21 +367,15 @@ export function Wardrobe() {
         <meshStandardMaterial color="#c9a25a" metalness={0.9} roughness={0.25} />
       </mesh>
       {garments.map((g, i) => (
-        <group key={i} position={[g.x, 1.94, 0.06]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.035, 0.005, 6, 12, Math.PI]} />
-            <meshStandardMaterial color="#b9b2a6" metalness={0.8} roughness={0.3} />
-          </mesh>
-          <mesh castShadow position={[0, -g.h / 2 - 0.04, 0]}>
-            <cylinderGeometry args={[g.w * 0.42, g.w * 0.62, g.h, low ? 6 : 12, 1, true]} />
-            <meshStandardMaterial
-              map={fabricTexture()}
-              color={g.c}
-              roughness={0.9}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        </group>
+        <Garment
+          key={i}
+          x={g.x}
+          color={g.c}
+          width={g.w}
+          height={g.h}
+          flare={i % 3 === 1 ? 1.35 : 1.0}
+          low={low}
+        />
       ))}
 
       {/* folded stacks + shoes on the lower shelf */}

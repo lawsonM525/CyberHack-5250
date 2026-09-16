@@ -329,6 +329,74 @@ export function CornerPalm({ position, scale = 1 }: { position: [number, number,
   )
 }
 
+/**
+ * The reference's signature motif: ivy falling in long dense curtains off the
+ * window head and the shelf tops. Every leaf and stem of one fall is baked into
+ * a single geometry, so a curtain of ~200 leaves is still one draw call.
+ */
+export function IvyFall({
+  position,
+  rotation = [0, 0, 0],
+  strands = 7,
+  length = 1.6,
+  spread = 0.5,
+  scale = 1,
+}: {
+  position: [number, number, number]
+  rotation?: [number, number, number]
+  strands?: number
+  length?: number
+  spread?: number
+  scale?: number
+}) {
+  const geo = useMemo(() => {
+    const parts: THREE.BufferGeometry[] = []
+    const rand = (n: number) => (Math.sin(n * 127.1) * 43758.5453) % 1
+    for (let s = 0; s < strands; s++) {
+      const x0 = (s / Math.max(1, strands - 1) - 0.5) * spread
+      const len = length * (0.55 + Math.abs(rand(s + 1)) * 0.75)
+      const sway = (rand(s * 3 + 7) - 0.2) * 0.22
+      const pts: THREE.Vector3[] = []
+      const n = 10
+      for (let i = 0; i <= n; i++) {
+        const t = i / n
+        pts.push(
+          new THREE.Vector3(
+            x0 + Math.sin(t * 2.4 + s) * 0.05 + sway * t * t,
+            -len * t,
+            Math.cos(t * 1.9 + s * 1.7) * 0.06,
+          ),
+        )
+      }
+      const curve = new THREE.CatmullRomCurve3(pts)
+      const stem = new THREE.TubeGeometry(curve, 14, 0.008, 4, false)
+      parts.push(stem)
+      const leaves = Math.round(len * 26)
+      for (let i = 1; i < leaves; i++) {
+        const t = i / leaves
+        const at = curve.getPointAt(t)
+        const size = 0.042 + Math.abs(rand(s * 31 + i)) * 0.034
+        const g = new THREE.ShapeGeometry(leafShape(size * 1.6, size * 0.7, false), 6)
+        curl(g, size * 1.6, size * 0.7, 0.8)
+        // leaves alternate down the stem and hang tip-down, like real ivy
+        g.rotateZ(Math.PI * (i % 2 ? 0.78 : 1.22) + rand(i + s) * 0.35)
+        g.rotateY(i * 1.9 + s)
+        g.translate(at.x, at.y, at.z)
+        parts.push(g)
+      }
+    }
+    const merged = mergeGeometries(parts, false) ?? new THREE.BufferGeometry()
+    parts.forEach((g) => g.dispose())
+    merged.computeVertexNormals()
+    return merged
+  }, [strands, length, spread])
+  return (
+    <mesh geometry={geo} position={position} rotation={rotation} scale={scale} castShadow>
+      <meshStandardMaterial color={greenB} roughness={0.78} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
 export function HangingVine({
   position,
   length = 1.1,

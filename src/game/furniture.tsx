@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Soft } from './soft'
+import { Soft, pillowGeometry } from './soft'
 import { fabricTexture, woodTexture } from './textures'
 import { artPlate } from './assets'
 import { Prop } from './props'
@@ -434,10 +434,16 @@ export function Lounge() {
         [-2.4, 1.3, 0.3],
         [-5.1, 0.95, -0.4],
       ].map(([x, z, r], i) => (
-        <mesh key={i} castShadow receiveShadow position={[x, 0.11, z]} rotation={[0, r, 0]} scale={[1, 0.55, 1]}>
-          <sphereGeometry args={[0.32, 18, 14]} />
-          <meshStandardMaterial map={fab} color={i ? '#4a6f6a' : '#7a3f5f'} roughness={0.95} />
-        </mesh>
+        <group key={i} position={[x, 0.02, z]} rotation={[0, r, 0]}>
+          <mesh geometry={pillowGeometry(0.66, 0.34, 0.6, 0.6)} castShadow receiveShadow position={[0, 0.17, 0]}>
+            <meshStandardMaterial map={fab} color={i ? '#4a6f6a' : '#7a3f5f'} roughness={0.95} />
+          </mesh>
+          {/* the button that pulls the top in: what makes a pouf a pouf */}
+          <mesh position={[0, 0.3, 0]} scale={[1, 0.5, 1]}>
+            <sphereGeometry args={[0.035, 8, 6]} />
+            <meshStandardMaterial color={i ? '#33514e' : '#582b43'} roughness={0.8} />
+          </mesh>
+        </group>
       ))}
 
       {/* mushroom lamp, the reference's warm anchor for this corner */}

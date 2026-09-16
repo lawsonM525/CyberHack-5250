@@ -14,7 +14,7 @@ const RUN = 4.1
 const ACCEL = 14
 const HEAD = 1.12
 /** Close enough that she, not the rug, is the subject of the frame. */
-const DIST = 2.5
+const DIST = 2.4
 const MIN_DIST = 1.2
 /** Where the boom swings for the arrival reveal: back across the span, over the city. */
 const REVEAL_YAW = Math.PI * 0.92
@@ -326,7 +326,7 @@ export function Player({
     // aiming at her head from below puts her feet off the bottom of the frame,
     // so the lower the lens sits the further down the body it looks
     const droop = Math.max(0, -camPitch.current) * 1.1
-    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD + 0.12 - pinch * 0.75 - droop, pivot.z)
+    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD - 0.06 - pinch * 0.75 - droop, pivot.z)
 
     // balusters are too thin for the boom to solve around without shoving the
     // lens into her back, so the ones in the way dissolve instead

@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
+import type * as THREE from 'three'
 import type { ThreeElements } from '@react-three/fiber'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 
@@ -22,6 +23,36 @@ export function softBoxGeometry(
   if (hit) return hit
   const geo = new RoundedBoxGeometry(w, h, d, segments, r)
   cache.set(key, geo)
+  return geo
+}
+
+const pillows = new Map<string, RoundedBoxGeometry>()
+
+/**
+ * A cushion, not an ellipsoid: the faces swell toward the middle and the
+ * corners stay pinched where the seams would be, which is what tells the eye
+ * "stuffed fabric" rather than "squashed sphere".
+ */
+export function pillowGeometry(w: number, h: number, d: number, plump = 0.5): RoundedBoxGeometry {
+  const key = `${w}|${h}|${d}|${plump}`
+  const hit = pillows.get(key)
+  if (hit) return hit
+  const geo = new RoundedBoxGeometry(w, h, d, 4, Math.min(w, h, d) * 0.45)
+  const p = geo.attributes.position as THREE.BufferAttribute
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i)
+    const y = p.getY(i)
+    const z = p.getZ(i)
+    const fx = 1 - Math.min(1, Math.abs(x) / (w / 2))
+    const fz = 1 - Math.min(1, Math.abs(z) / (d / 2))
+    const bulge = plump * fx * fz
+    p.setY(i, y * (1 + bulge * 1.25))
+    p.setX(i, x * (1 + bulge * 0.08))
+    p.setZ(i, z * (1 + bulge * 0.08))
+  }
+  p.needsUpdate = true
+  geo.computeVertexNormals()
+  pillows.set(key, geo)
   return geo
 }
 
