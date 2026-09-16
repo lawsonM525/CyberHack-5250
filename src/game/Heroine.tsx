@@ -21,15 +21,20 @@ const SIT_POSE: { bone: string; swing: number; spread: number }[] = [
   { bone: 'R_Thigh', swing: 1.45, spread: -0.12 },
   { bone: 'L_Calf', swing: -1.5, spread: 0 },
   { bone: 'R_Calf', swing: -1.5, spread: 0 },
-  { bone: 'L_Foot', swing: 0.2, spread: 0 },
-  { bone: 'R_Foot', swing: 0.2, spread: 0 },
-  { bone: 'Waist', swing: -0.1, spread: 0 },
-  { bone: 'Spine01', swing: -0.05, spread: 0 },
-  { bone: 'L_Upperarm', swing: 0.5, spread: 0.12 },
-  { bone: 'R_Upperarm', swing: 0.5, spread: -0.12 },
-  { bone: 'L_Forearm', swing: 0.55, spread: 0 },
-  { bone: 'R_Forearm', swing: 0.55, spread: 0 },
+  { bone: 'L_Foot', swing: 0.0, spread: 0 },
+  { bone: 'R_Foot', swing: 0.0, spread: 0 },
+  { bone: 'Waist', swing: -0.16, spread: 0 },
+  { bone: 'Spine01', swing: -0.08, spread: 0 },
+  { bone: 'L_Upperarm', swing: 1.15, spread: 0.14 },
+  { bone: 'R_Upperarm', swing: 1.15, spread: -0.14 },
+  { bone: 'L_Forearm', swing: 0.7, spread: 0 },
+  { bone: 'R_Forearm', swing: 0.7, spread: 0 },
 ]
+
+if (import.meta.env.DEV) {
+  // live handle for tuning the desk pose against the real chair and keyboard
+  ;(window as unknown as { __sit?: unknown }).__sit = SIT_POSE
+}
 
 const animUrl = (clips: string, name: AnimName) =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
@@ -141,10 +146,10 @@ export function Heroine({
 
   const seated = useMemo(
     () =>
-      SIT_POSE.flatMap(({ bone: name, swing, spread }) => {
-        const bone = object.getObjectByName(name)
+      SIT_POSE.flatMap((spec) => {
+        const bone = object.getObjectByName(spec.bone)
         if (!bone || !bone.parent) return []
-        return [{ bone, parent: bone.parent, rest: bone.quaternion.clone(), swing, spread }]
+        return [{ bone, parent: bone.parent, rest: bone.quaternion.clone(), spec }]
       }),
     [object],
   )
@@ -180,7 +185,8 @@ export function Heroine({
       const p = pose.current
       object.getWorldQuaternion(p.frame)
       p.frameInv.copy(p.frame).invert()
-      for (const { bone, parent, rest, swing, spread } of seated) {
+      for (const { bone, parent, rest, spec } of seated) {
+        const { swing, spread } = spec
         // the clips do not key every one of these joints, so start from the
         // bind pose each frame rather than compounding the previous delta
         bone.quaternion.copy(rest)

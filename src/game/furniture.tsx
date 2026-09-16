@@ -250,7 +250,7 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
 
 export function Chair() {
   return (
-    <group position={[-3.9, 0, -3.0]} rotation={[0, Math.PI, 0]}>
+    <group position={[-3.9, 0, -3.12]} rotation={[0, Math.PI, 0]}>
       <mesh castShadow position={[0, 0.45, 0]}>
         <cylinderGeometry args={[0.3, 0.31, 0.1, 22]} />
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />

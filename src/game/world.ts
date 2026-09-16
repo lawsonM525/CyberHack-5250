@@ -25,7 +25,7 @@ export const FAR_BALCONY = { z: -16.6, y: 0 }
 /** Axis-aligned furniture/wall footprints the player cannot walk through. */
 export const BLOCKERS: Rect[] = [
   rect(-5.55, -4.4, -2.7, -3.45), // desk
-  rect(-4.45, -3.45, -3.35, -2.55), // desk chair
+  rect(-4.45, -3.57, -3.35, -2.67), // desk chair
   rect(-2.25, -4.4, 1.95, -3.6), // window garden planters
   rect(-5.45, 2.85, -2.15, 4.4), // sunken velvet lounge, plinth included
   rect(-4.65, 1.45, -3.15, 2.45), // coffee table

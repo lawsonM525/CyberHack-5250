@@ -21,7 +21,7 @@ const HEAD = 1.4
  */
 const HERO_SCALE = 1.68
 /** Desk chair seat, and where she stands up again so she never wakes inside it. */
-const SEAT = { x: -3.9, z: -2.94, yaw: 0, drop: 0.38 }
+const SEAT = { x: -3.9, z: -3.12, yaw: 0, drop: 0.34 }
 const STAND = { x: -3.9, z: -2.2 }
 /** Close enough that she, not the rug, is the subject of the frame. */
 const DIST = 3.1
