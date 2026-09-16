@@ -251,16 +251,16 @@ export function Desk({ stage, unread }: { stage: MissionStage; unread: boolean }
 export function Chair() {
   return (
     <group position={[-3.9, 0, -3.0]} rotation={[0, Math.PI, 0]}>
-      <mesh castShadow position={[0, 0.46, 0]}>
-        <cylinderGeometry args={[0.24, 0.26, 0.09, 18]} />
+      <mesh castShadow position={[0, 0.45, 0]}>
+        <cylinderGeometry args={[0.3, 0.31, 0.1, 22]} />
         <meshStandardMaterial color="#3a2b3a" roughness={0.75} />
       </mesh>
       {/* the back rest sits between her and the room boom while she works, so
           it dissolves like the balcony rails rather than hiding her torso */}
       <Soft
-        args={[0.42, 0.5, 0.07]}
+        args={[0.46, 0.56, 0.08]}
         castShadow
-        position={[0, 0.74, -0.22]}
+        position={[0, 0.78, -0.26]}
         rotation={[0.16, 0, 0]}
         userData={{ camFade: true }}
       >

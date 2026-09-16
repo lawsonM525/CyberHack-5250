@@ -12,15 +12,20 @@ import { drainMouse, isPointerLocked, readInput } from './input'
 const WALK = 2.05
 const RUN = 4.1
 const ACCEL = 14
-const HEAD = 1.2
-/** She read small against the furniture at 1.0. */
-const HERO_SCALE = 1.09
+/** Roughly her eyeline, and what the boom aims at. */
+const HEAD = 1.4
+/**
+ * The rig ships about a metre tall, so at the old 1.09 she stood 1.08 m in a
+ * room built to human scale: shorter than the desk chair's back, which is why
+ * the furniture dwarfed her and the chair swallowed her when she sat down.
+ */
+const HERO_SCALE = 1.68
 /** Desk chair seat, and where she stands up again so she never wakes inside it. */
-const SEAT = { x: -3.9, z: -2.94, yaw: 0, drop: 0.33 }
+const SEAT = { x: -3.9, z: -2.94, yaw: 0, drop: 0.38 }
 const STAND = { x: -3.9, z: -2.2 }
 /** Close enough that she, not the rug, is the subject of the frame. */
-const DIST = 2.4
-const MIN_DIST = 1.2
+const DIST = 3.1
+const MIN_DIST = 1.5
 /** Where the boom swings for the arrival reveal: back across the span, over the city. */
 const REVEAL_YAW = Math.PI * 0.92
 const REVEAL_PITCH = 0.2

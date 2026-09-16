@@ -10,26 +10,26 @@ const ANIMS = ['idle', 'walk', 'run'] as const
 type AnimName = (typeof ANIMS)[number]
 
 /**
- * Sitting is posed, not animated: the retargeted clip set is idle/walk/run only,
- * so the desk pose folds the legs and leans the spine on top of the idle pose by
- * blending a fixed local rotation into each joint.
+ * Sitting is posed, not animated: the retargeted clip set is idle/walk/run only.
+ * The deltas are written in the character's own frame — she faces +X, so +Z
+ * swings a limb forward and Y spreads it sideways — and converted into each
+ * bone's parent space at runtime, because the retargeted rig's local bone axes
+ * do not agree with each other.
  */
-const SIT_POSE: [string, [number, number, number]][] = [
-  ['LeftUpLeg', [-1.42, 0.12, 0.06]],
-  ['RightUpLeg', [-1.42, -0.12, -0.06]],
-  ['LeftLeg', [1.5, 0, 0]],
-  ['RightLeg', [1.5, 0, 0]],
-  ['LeftFoot', [0.2, 0, 0]],
-  ['RightFoot', [0.2, 0, 0]],
-  ['Spine', [0.1, 0, 0]],
-  ['Spine01', [0.06, 0, 0]],
-  ['LeftArm', [0, 0, 0.22]],
-  ['RightArm', [0, 0, -0.22]],
-  ['LeftForeArm', [-0.35, 0, 0]],
-  ['RightForeArm', [-0.35, 0, 0]],
+const SIT_POSE: { bone: string; swing: number; spread: number }[] = [
+  { bone: 'L_Thigh', swing: 1.45, spread: 0.12 },
+  { bone: 'R_Thigh', swing: 1.45, spread: -0.12 },
+  { bone: 'L_Calf', swing: -1.5, spread: 0 },
+  { bone: 'R_Calf', swing: -1.5, spread: 0 },
+  { bone: 'L_Foot', swing: 0.2, spread: 0 },
+  { bone: 'R_Foot', swing: 0.2, spread: 0 },
+  { bone: 'Waist', swing: -0.1, spread: 0 },
+  { bone: 'Spine01', swing: -0.05, spread: 0 },
+  { bone: 'L_Upperarm', swing: 0.5, spread: 0.12 },
+  { bone: 'R_Upperarm', swing: 0.5, spread: -0.12 },
+  { bone: 'L_Forearm', swing: 0.55, spread: 0 },
+  { bone: 'R_Forearm', swing: 0.55, spread: 0 },
 ]
-
-const IDENTITY = new THREE.Quaternion()
 
 const animUrl = (clips: string, name: AnimName) =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
@@ -141,14 +141,21 @@ export function Heroine({
 
   const seated = useMemo(
     () =>
-      SIT_POSE.flatMap(([name, [x, y, z]]) => {
+      SIT_POSE.flatMap(({ bone: name, swing, spread }) => {
         const bone = object.getObjectByName(name)
-        if (!bone) return []
-        return [{ bone, delta: new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z)) }]
+        if (!bone || !bone.parent) return []
+        return [{ bone, parent: bone.parent, rest: bone.quaternion.clone(), swing, spread }]
       }),
     [object],
   )
-  const blend = useRef(new THREE.Quaternion())
+  const pose = useRef({
+    euler: new THREE.Euler(0, 0, 0, 'YZX'),
+    rot: new THREE.Quaternion(),
+    frame: new THREE.Quaternion(),
+    frameInv: new THREE.Quaternion(),
+    parent: new THREE.Quaternion(),
+    parentInv: new THREE.Quaternion(),
+  })
 
   useFrame((_, rawDelta) => {
     const delta = Math.min(rawDelta, 0.25)
@@ -170,9 +177,20 @@ export function Heroine({
 
     const sit = THREE.MathUtils.clamp(motion.current?.sit ?? 0, 0, 1)
     if (sit > 0.002) {
-      for (const { bone, delta: d } of seated) {
-        blend.current.slerpQuaternions(IDENTITY, d, sit)
-        bone.quaternion.multiply(blend.current)
+      const p = pose.current
+      object.getWorldQuaternion(p.frame)
+      p.frameInv.copy(p.frame).invert()
+      for (const { bone, parent, rest, swing, spread } of seated) {
+        // the clips do not key every one of these joints, so start from the
+        // bind pose each frame rather than compounding the previous delta
+        bone.quaternion.copy(rest)
+        p.euler.set(0, spread * sit, swing * sit)
+        p.rot.setFromEuler(p.euler)
+        // character frame -> world, then world -> the bone's parent space
+        p.rot.premultiply(p.frame).multiply(p.frameInv)
+        parent.getWorldQuaternion(p.parent)
+        p.parentInv.copy(p.parent).invert()
+        bone.quaternion.premultiply(p.parent).premultiply(p.rot).premultiply(p.parentInv)
       }
     }
   })
