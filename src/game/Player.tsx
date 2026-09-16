@@ -19,6 +19,19 @@ const MIN_DIST = 1.2
 /** Where the boom swings for the arrival reveal: back across the span, over the city. */
 const REVEAL_YAW = Math.PI * 0.92
 const REVEAL_PITCH = 0.2
+/** Shorter than this and the boom would be inside whatever is behind her. */
+const MIN_LENS = 0.85
+const UP = new THREE.Vector3(0, 1, 0)
+const TMP_SIZE = new THREE.Vector3()
+
+function isDescendant(node: THREE.Object3D, ancestor: THREE.Object3D): boolean {
+  let p: THREE.Object3D | null = node
+  while (p) {
+    if (p === ancestor) return true
+    p = p.parent
+  }
+  return false
+}
 
 export function Player({
   active,
@@ -48,7 +61,10 @@ export function Player({
   const camInit = useRef(false)
   const reveal = useRef(0)
   const lastStage = useRef(stage)
-  const { camera } = useThree()
+  const occluders = useRef<THREE.Mesh[]>([])
+  const occluderAge = useRef(0)
+  const raycaster = useRef(new THREE.Raycaster())
+  const { camera, scene } = useThree()
 
   useEffect(() => {
     if (stage === 'crossed' && lastStage.current !== 'crossed') reveal.current = 5
@@ -199,7 +215,7 @@ export function Player({
     // wall behind her crops the frame instead of her
     const pinch = 1 - THREE.MathUtils.clamp((dist - 0.6) / (DIST - 0.6), 0, 1)
     const desired = boxedIn
-      ? new THREE.Vector3(pivot.x, pivot.y + 1.5, pivot.z)
+      ? new THREE.Vector3(pivot.x, pivot.y + 1.2, pivot.z)
       : new THREE.Vector3(
           pivot.x + dirX * dist,
           Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
@@ -211,8 +227,84 @@ export function Player({
     } else {
       camPos.current.lerp(desired, Math.min(1, delta * 9))
     }
+
+    // the rectangles above only know the floor plan; the built set has recesses,
+    // rails and awnings they do not, so the last word belongs to the geometry
+    // actually standing between the lens and her head
+    occluderAge.current -= delta
+    if (occluderAge.current <= 0) {
+      occluderAge.current = 0.4
+      const near: { mesh: THREE.Mesh; d: number }[] = []
+      const box = new THREE.Box3()
+      const self = root.current
+      scene.traverse((o) => {
+        const mesh = o as THREE.Mesh
+        if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh || !mesh.visible) return
+        if (self && isDescendant(mesh, self)) return
+        const material = mesh.material
+        const seeThrough = Array.isArray(material)
+          ? material.some((m) => m.transparent)
+          : material.transparent
+        if (seeThrough) return
+        box.setFromObject(mesh)
+        if (box.isEmpty()) return
+        const d = box.distanceToPoint(pivot)
+        if (d > 6) return
+        // a decorated room has hundreds of leaves and trinkets within reach;
+        // only masses big enough to hide her are worth a ray
+        const size = box.getSize(TMP_SIZE)
+        if (Math.max(size.x, size.y, size.z) < 0.35) return
+        near.push({ mesh, d })
+      })
+      near.sort((a, b) => a.d - b.d)
+      occluders.current = near.slice(0, 120).map((n) => n.mesh)
+    }
+
+    const caster = raycaster.current
+    /** Highest the lens can ride straight up before an awning or ceiling. */
+    const headroom = (): number => {
+      caster.near = 0.05
+      caster.far = 2.2
+      caster.set(pivot, UP)
+      const ceiling = caster.intersectObjects(occluders.current, false)
+      return Math.max(0.5, Math.min(1.3, (ceiling.length > 0 ? ceiling[0].distance : 2.2) - 0.3))
+    }
+
+    const toLens = camPos.current.clone().sub(pivot)
+    const lensDist = toLens.length()
+    let overhead = boxedIn
+    if (boxedIn) {
+      camPos.current.y = Math.min(camPos.current.y, pivot.y + headroom())
+    } else if (lensDist > 0.01) {
+      toLens.divideScalar(lensDist)
+      caster.near = 0.05
+      caster.far = lensDist
+      caster.set(pivot, toLens)
+      const hits = caster.intersectObjects(occluders.current, false)
+      const clear = hits.length > 0 ? hits[0].distance - 0.16 : lensDist
+      if (clear < MIN_LENS) {
+        // nothing behind her but wall: ride over her shoulder looking down
+        // rather than clamp the boom through it
+        camPos.current.set(pivot.x, pivot.y + headroom(), pivot.z)
+        overhead = true
+      } else if (clear < lensDist) {
+        camPos.current.copy(pivot).addScaledVector(toLens, clear)
+      }
+    }
+
     camera.position.copy(camPos.current)
-    camera.lookAt(pivot.x, boxedIn ? 0.75 : HEAD + 0.12 - pinch * 0.75, pivot.z)
+    camera.lookAt(pivot.x, overhead ? 0.75 : HEAD + 0.12 - pinch * 0.75, pivot.z)
+
+    if (import.meta.env.DEV) {
+      ;(window as unknown as { __cam?: unknown }).__cam = {
+        occluders: occluders.current.length,
+        boxedIn,
+        overhead,
+        planRoom: room,
+        lensDist,
+        pivot: pivot.toArray(),
+      }
+    }
 
     // nearest interactable
     let best: string | null = null

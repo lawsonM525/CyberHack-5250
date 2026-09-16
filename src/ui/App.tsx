@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useProgress } from '@react-three/drei'
 import { Scene, LookPreview } from '../game/Scene'
 import { Terminal } from './Terminal'
-import { useGame, persist, type Settings } from '../state/store'
+import { useGame, persist, type Notif, type Settings } from '../state/store'
 import { useUi } from '../state/ui'
 import { LOOKS, getLook } from '../content/presets'
 import { getInspectable } from '../content/inspectables'
@@ -22,6 +22,7 @@ export function App() {
 
   useEffect(() => {
     setInputEnabled(phase === 'playing' && overlay === null)
+    if (overlay === null) useUi.getState().markOverlayClosed()
   }, [phase, overlay])
 
   // audio mixer follows settings
@@ -125,11 +126,14 @@ function useNotifSounds() {
   }, [notifs])
 }
 
-const FIRST_TEXT_DELAY = 42000
-const TEXT_GAP = 78000
-const TEXT_JITTER = 34000
+const FIRST_TEXT_DELAY = 75000
+const TEXT_GAP = 165000
+const TEXT_JITTER = 60000
 /** Retry window used when she is mid-overlay, so a clue is never interrupted. */
-const TEXT_RETRY = 9000
+const TEXT_RETRY = 12000
+/** Reading a clue then getting pinged instantly is the same interruption, so
+ *  the queue also waits out a beat after any panel closes. */
+const AFTER_OVERLAY_QUIET = 8000
 
 /** Friends text between missions, spaced out and never over an open panel. */
 function useFriendTexts() {
@@ -141,7 +145,8 @@ function useFriendTexts() {
       const state = useGame.getState()
       const next = BEATS.find((b) => !state.delivered.includes(b.id))
       if (!next) return
-      if (state.overlay !== null) {
+      const quiet = Date.now() - useUi.getState().overlayClosedAt
+      if (state.overlay !== null || quiet < AFTER_OVERLAY_QUIET) {
         timer = window.setTimeout(tick, TEXT_RETRY)
         return
       }
@@ -152,39 +157,126 @@ function useFriendTexts() {
   }, [phase])
 }
 
+/** How long the log stays open after the last arrival before it folds back
+ *  into its taskbar chip. Nothing is lost when it folds. */
+const LOG_LINGER = 9000
+
+function clockLabel(at: number): string {
+  const d = new Date(at)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/** Short type tag in the corner of each line, like the reference's task cards. */
+const TAG: Record<Notif['kind'], string> = {
+  story: 'OPS',
+  text: 'MSG',
+  credit: '¢',
+  treat: 'BUY',
+}
+
+/** Modelled on her SlaveHack shots: an OS-style window (flat bar, square
+ *  _ □ × buttons) holding a column of compact task cards that stack, drain
+ *  and can be killed one at a time — not floating toasts. */
 function NotifStack() {
   const notifs = useGame((s) => s.notifs)
   const dismiss = useGame((s) => s.dismissNotif)
+  const clear = useGame((s) => s.clearNotifs)
   const setOverlay = useGame((s) => s.setOverlay)
+  const [open, setOpen] = useState(true)
+  const [pinned, setPinned] = useState(false)
+  const [hover, setHover] = useState(false)
+  const last = notifs.length > 0 ? notifs[notifs.length - 1].id : 0
 
+  // a new line pops the window back open, then it folds itself away again —
+  // unless she pinned it or has the pointer on it, i.e. is reading
   useEffect(() => {
-    if (notifs.length === 0) return undefined
-    const timers = notifs.map((n) => window.setTimeout(() => dismiss(n.id), 7000))
-    return () => timers.forEach((t) => window.clearTimeout(t))
-  }, [notifs, dismiss])
+    if (last === 0) return undefined
+    setOpen(true)
+    if (pinned || hover) return undefined
+    const t = window.setTimeout(() => setOpen(false), LOG_LINGER)
+    return () => window.clearTimeout(t)
+  }, [last, pinned, hover])
+
+  // T toggles the log by hand, like any other window on her desktop
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyT' || e.repeat) return
+      setOpen((v) => !v)
+      setPinned((v) => !v)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  if (notifs.length === 0) return null
+
+  if (!open) {
+    return (
+      <div className="notifs">
+        <button className="logchip" onClick={() => setOpen(true)}>
+          <span className="logchip-dot" />
+          inbox<span className="logchip-n">{notifs.length}</span>
+          <span className="logchip-key">T</span>
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className="notifs">
-      {notifs.map((n) => (
-        <button
-          key={n.id}
-          className={`notif ${n.kind}`}
-          style={{ '--accent': n.accent } as React.CSSProperties}
-          onClick={() => {
-            dismiss(n.id)
-            if (n.kind === 'text') {
+    <div className="notifs" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <div className="logwin">
+        <div className="logwin-bar">
+          <span className="logwin-glyph">{'>_'}</span>
+          <span className="logwin-title">
+            inbox ({notifs.length})
+          </span>
+          <span className="logwin-clock">{clockLabel(Date.now())}</span>
+          <button className="wbtn" title="minimise (T)" onClick={() => setOpen(false)}>
+            _
+          </button>
+          <button
+            className="wbtn"
+            title="open terminal"
+            onClick={() => {
               document.exitPointerLock?.()
               setOverlay('computer')
-            }
-          }}
-        >
-          <span className="dot" />
-          <span className="body">
-            <b>{n.title}</b>
-            <span>{n.body}</span>
-          </span>
-        </button>
-      ))}
+            }}
+          >
+            □
+          </button>
+          <button className="wbtn close" title="clear all" onClick={clear}>
+            ×
+          </button>
+        </div>
+        <div className="logwin-body">
+          {notifs.map((n) => (
+              <div
+                key={n.id}
+                className={`logrow ${n.kind} ${hover || pinned ? 'held' : ''}`}
+                style={{ '--accent': n.accent, '--life': `${LOG_LINGER}ms` } as React.CSSProperties}
+              >
+              <button className="logrow-x" title="dismiss" onClick={() => dismiss(n.id)}>
+                ×
+              </button>
+              <button
+                className="logrow-main"
+                onClick={() => {
+                  if (n.kind !== 'text') return
+                  document.exitPointerLock?.()
+                  setOverlay('computer')
+                }}
+              >
+                <span className="logrow-head">
+                  <span className="logrow-from">{n.title}</span>
+                  <span className="logrow-time">{clockLabel(n.at)}</span>
+                </span>
+                <span className="logrow-text">{n.body}</span>
+              </button>
+              <span className="logrow-tag">{TAG[n.kind]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

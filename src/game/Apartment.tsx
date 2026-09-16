@@ -5,7 +5,16 @@ import { plasterTexture, woodTexture } from './textures'
 import { artPlate, posterPlate, rugPlate } from './assets'
 import { Fern, HangingVine, Jasmine, Monstera, NightOrchid, Planter, CornerPalm } from './plants'
 import { Bookshelf, CeilingFan, Chair, Desk, Kitchenette, Lounge, NightHatch, RecordConsole, Speaker, Vanity } from './furniture'
-import { Curtains, HangingBasket, MushroomLamp, Pouf, SideTable, Wardrobe, WindowSeat } from './cozy'
+import {
+  Curtains,
+  HangingBasket,
+  LightPool,
+  MushroomLamp,
+  Pouf,
+  SideTable,
+  Wardrobe,
+  WindowSeat,
+} from './cozy'
 import type { MissionStage } from '../state/store'
 import { useLowQuality } from './quality'
 
@@ -264,6 +273,38 @@ export function Apartment({
       <pointLight position={[-2.2, 2.4, 2.4]} color="#ffa864" intensity={9} distance={11} decay={2} />
       {/* wall wash so the plaster never falls to black behind the furniture */}
       <pointLight position={[3.9, 2.4, 2.0]} color="#ffc48a" intensity={9} distance={11} decay={2} />
+      {/* baked pools: the warmth survives the point-light budget and costs one
+          unlit quad each instead of another practical */}
+      <LightPool
+        position={[0, 2.1, ROOM.z1 - 0.13]}
+        rotation={[0, Math.PI, 0]}
+        size={5.2}
+        color="#ff9852"
+        opacity={0.3}
+      />
+      <LightPool
+        position={[-4.4, 1.9, ROOM.z1 - 0.13]}
+        rotation={[0, Math.PI, 0]}
+        size={3.4}
+        color="#ffab6a"
+        opacity={0.26}
+      />
+      <LightPool
+        position={[ROOM.x0 + 0.14, 1.95, 0.6]}
+        rotation={[0, Math.PI / 2, 0]}
+        size={3.8}
+        color="#ffa25c"
+        opacity={0.26}
+      />
+      <LightPool
+        position={[ROOM.x1 - 0.14, 1.9, 1.2]}
+        rotation={[0, -Math.PI / 2, 0]}
+        size={3.6}
+        color="#ffb271"
+        opacity={0.24}
+      />
+      <LightPool position={[-2.2, 0.03, 2.4]} size={4.4} color="#ff9a4e" opacity={0.3} />
+      <LightPool position={[3.6, 0.03, 1.2]} size={3.6} color="#ffab63" opacity={0.24} />
 
       {/* window garden: slatted seat + the four clue plants, each in its own pot */}
       <WindowSeat />

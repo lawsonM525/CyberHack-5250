@@ -520,71 +520,253 @@ button {
 
 /* --------------------------------------------- notifications, wallet, life */
 
+/* Modelled on the two SlaveHack-family references she sent: the OS-desktop
+   window chrome (flat title bar, glyph + title left, square _ □ × right, black
+   body) and the "Network Tasks" column (stacked compact task cards, kill button
+   on the left, a coloured fill bar draining behind each row). */
 .notifs {
   position: absolute;
-  top: 22px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 18px;
+  bottom: 18px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-items: center;
-  pointer-events: none;
-}
-
-.notif {
-  pointer-events: auto;
-  display: flex;
   align-items: flex-start;
-  gap: 11px;
-  width: 380px;
-  text-align: left;
-  padding: 13px 17px;
-  border-radius: 16px;
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-  background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--accent) 22%, rgba(22, 16, 28, 0.94)),
-    rgba(18, 16, 28, 0.95)
-  );
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 22px -12px var(--accent);
-  animation: slide 320ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  gap: 6px;
+  pointer-events: none;
+  font-family: var(--mono);
 }
 
-.notif:hover {
-  border-color: var(--accent);
+.logwin {
+  pointer-events: auto;
+  width: 318px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(6, 5, 9, 0.88);
+  border: 1px solid rgba(255, 196, 132, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  animation: slide 180ms ease both;
 }
 
-.notif .dot {
-  width: 9px;
-  height: 9px;
-  margin-top: 5px;
-  border-radius: 50%;
-  flex: none;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+.logwin-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 8px;
+  background: #1a1218;
+  border-bottom: 1px solid rgba(255, 196, 132, 0.22);
 }
 
-.notif .body {
-  display: block;
-  line-height: 1.45;
-}
-
-.notif b {
-  display: block;
-  font-weight: 500;
-  letter-spacing: 0.16em;
+.logwin-glyph {
+  color: #ffc46b;
   font-size: 11px;
+}
+
+.logwin-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #e6cfae;
+}
+
+.logwin-clock {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 10px;
+  color: #8a7159;
+}
+
+/* square window buttons, right-aligned, like the terminal reference */
+.wbtn {
+  width: 15px;
+  height: 14px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: #cbb79b;
+  background: #2a1f26;
+  border: 1px solid rgba(255, 196, 132, 0.28);
+  cursor: pointer;
+}
+
+.wbtn:hover {
+  background: #3b2b33;
+  color: #ffd79a;
+}
+
+.wbtn.close:hover {
+  background: #7a2b2b;
+  color: #ffe6e0;
+}
+
+.logwin-body {
+  max-height: 170px;
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* one task card per line: kill button, two-line label, type tag */
+.logrow {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #0b0a10;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid var(--accent);
+  overflow: hidden;
+}
+
+/* the drain bar: shows how long the line stays before the window folds */
+.logrow::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--accent);
+  opacity: 0.14;
+  transform-origin: left center;
+  animation: drain var(--life, 9s) linear forwards;
+}
+
+.logrow.held::before {
+  animation-play-state: paused;
+}
+
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.logrow-x {
+  position: relative;
+  flex: none;
+  width: 16px;
+  background: #171016;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #9d8a77;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.logrow-x:hover {
+  background: #7a2b2b;
+  color: #ffe6e0;
+}
+
+.logrow-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #d8cec0;
+  cursor: default;
+}
+
+.logrow.text .logrow-main {
+  cursor: pointer;
+}
+
+.logrow.text .logrow-main:hover .logrow-text {
+  text-decoration: underline;
+}
+
+.logrow-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.logrow-from {
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.notif.credit {
+.logrow-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #6f6157;
+  flex: none;
+}
+
+.logrow-text {
+  font-size: 11.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.logrow-tag {
+  position: relative;
+  flex: none;
+  align-self: center;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 3px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #0b0a10;
+  background: var(--accent);
+}
+
+.logchip {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 8px;
+  border-radius: 2px;
   font-family: var(--mono);
+  font-size: 11px;
+  color: #e0cdb2;
+  background: #1a1218;
+  border: 1px solid rgba(255, 196, 132, 0.28);
+  cursor: pointer;
+}
+
+.logchip:hover {
+  border-color: rgba(255, 196, 132, 0.6);
+}
+
+.logchip-dot {
+  width: 6px;
+  height: 6px;
+  background: #8fe39a;
+  box-shadow: 0 0 7px #8fe39a;
+}
+
+.logchip-n {
+  color: #ffc46b;
+}
+
+.logchip-key {
+  padding: 0 4px;
+  font-size: 9px;
+  color: #8a7159;
+  border: 1px solid rgba(255, 196, 132, 0.25);
 }
 
 .wallet {

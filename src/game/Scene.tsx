@@ -125,11 +125,14 @@ function LightBudget({ quality }: { quality: 'low' | 'medium' | 'high' }) {
       const l = o as THREE.PointLight
       if (l.isPointLight && l.intensity > 0) points.push(l)
     })
-    points.sort(
-      (a, b) =>
-        a.getWorldPosition(TMP_A).distanceToSquared(camera.position) -
-        b.getWorldPosition(TMP_B).distanceToSquared(camera.position),
-    )
+    // rank by how much of the frame a light actually warms, not by proximity
+    // alone: a dim trinket light beside the lens used to evict the lamp lighting
+    // the wall she is looking at
+    const score = (l: THREE.PointLight, tmp: THREE.Vector3): number => {
+      const d2 = l.getWorldPosition(tmp).distanceToSquared(camera.position)
+      return (l.intensity * Math.max(1, l.distance)) / (1 + d2)
+    }
+    points.sort((a, b) => score(b, TMP_B) - score(a, TMP_A))
     points.forEach((l, i) => {
       l.visible = i < budget
     })
@@ -212,6 +215,18 @@ function FpsProbe() {
     ;(window as unknown as { __three?: unknown }).__three = THREE
   }, [gl, scene, camera])
 
+  // the composer renders in several passes and three resets its counters on
+  // every one of them, so reading after the frame only saw the final copy pass
+  // (1 call, 0 triangles). Reset once before the frame, read once after it.
+  useEffect(() => {
+    gl.info.autoReset = false
+    return () => {
+      gl.info.autoReset = true
+    }
+  }, [gl])
+
+  useFrame(() => gl.info.reset(), -1000)
+
   // sampled with the frame rate, not in an effect: the drawing buffer changes
   // when the quality tier changes the pixel ratio, and that leaves CSS size
   // untouched, so an effect keyed on size reported a stale resolution
@@ -233,7 +248,7 @@ function FpsProbe() {
       acc.current.t = 0
       acc.current.n = 0
     }
-  })
+  }, 1000)
   return null
 }
 

@@ -371,7 +371,9 @@ export function KingsleyRow({ unlocked, crossed }: { unlocked: boolean; crossed:
           instead of one tiled wall of identical windows */}
       {[
         { y: -6, x: -11.5, w: 7, h: 30, d: 3.2 },
-        { y: 16, x: 9.5, w: 9, h: 40, d: 2.6 },
+        // kept east of x=8: at w=9/x=9.5 this mass swallowed the balcony deck's
+        // east rail, so the boom was solving against a wall she stood inside
+        { y: 16, x: 11, w: 6, h: 40, d: 2.6 },
         { y: 30, x: -3, w: 12, h: 26, d: 2.0 },
       ].map((s, i) => (
         <mesh key={i} position={[s.x, s.y, -29 + 9 + s.d / 2]}>

@@ -79,6 +79,58 @@ export function artPlate(
   return t
 }
 
+/**
+ * Soft radial falloff used for baked light pools and lamp shades: warmth that
+ * survives the point-light budget without costing another light.
+ */
+export function glowPlate(): THREE.Texture {
+  const hit = cache.get('glow')
+  if (hit) return hit
+  const c = document.createElement('canvas')
+  c.width = 128
+  c.height = 128
+  const ctx = c.getContext('2d')
+  if (ctx) {
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
+    g.addColorStop(0, 'rgba(255,255,255,1)')
+    g.addColorStop(0.45, 'rgba(255,255,255,0.42)')
+    g.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 128, 128)
+  }
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.wrapS = THREE.ClampToEdgeWrapping
+  t.wrapT = THREE.ClampToEdgeWrapping
+  cache.set('glow', t)
+  return t
+}
+
+/** Vertical falloff for a glass shade: hot at the rim, cool at the crown. */
+export function shadePlate(): THREE.Texture {
+  const hit = cache.get('shade')
+  if (hit) return hit
+  const c = document.createElement('canvas')
+  c.width = 4
+  c.height = 64
+  const ctx = c.getContext('2d')
+  if (ctx) {
+    const g = ctx.createLinearGradient(0, 0, 0, 64)
+    // canvas top maps to the crown of the shade: dim there, hot at the rim
+    g.addColorStop(0, '#b8631f')
+    g.addColorStop(0.45, '#ff9a3c')
+    g.addColorStop(1, '#ffe7c4')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 4, 64)
+  }
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.wrapS = THREE.ClampToEdgeWrapping
+  t.wrapT = THREE.ClampToEdgeWrapping
+  cache.set('shade', t)
+  return t
+}
+
 export function rugPlate(): THREE.Texture {
   const t = load('rug.jpg', true)
   t.wrapS = THREE.ClampToEdgeWrapping

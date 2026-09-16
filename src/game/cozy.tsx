@@ -2,7 +2,43 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { Soft } from './soft'
 import { fabricTexture, woodTexture } from './textures'
+import { glowPlate, shadePlate } from './assets'
 import { useLowQuality } from './quality'
+
+/**
+ * A baked pool of warm light: one additive, unlit quad. It fakes the falloff a
+ * practical throws on the wall or floor for a fraction of a point light, and it
+ * keeps glowing when the light budget puts the real lamp to sleep.
+ */
+export function LightPool({
+  position,
+  rotation = [-Math.PI / 2, 0, 0],
+  size = 2.4,
+  color = '#ff9f52',
+  opacity = 0.5,
+}: {
+  position: [number, number, number]
+  rotation?: [number, number, number]
+  size?: number
+  color?: string
+  opacity?: number
+}) {
+  const map = useMemo(() => glowPlate(), [])
+  return (
+    <mesh position={position} rotation={rotation} renderOrder={-1}>
+      <planeGeometry args={[size, size]} />
+      <meshBasicMaterial
+        map={map}
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </mesh>
+  )
+}
 
 /**
  * Soft furnishings and warm practicals: the pieces that carry the reference's
@@ -132,6 +168,9 @@ export function MushroomLamp({
 }) {
   const low = useLowQuality()
   const seg = low ? 14 : 28
+  // the shade used to read as a flat orange surface: a vertical falloff on the
+  // emissive channel gives it the hot rim and dim crown of real blown glass
+  const falloff = useMemo(() => shadePlate(), [])
   return (
     <group position={position} scale={scale}>
       {/* stem */}
@@ -140,7 +179,8 @@ export function MushroomLamp({
         <meshStandardMaterial
           color="#f0a04a"
           emissive="#ff8a2a"
-          emissiveIntensity={0.55}
+          emissiveMap={falloff}
+          emissiveIntensity={0.7}
           roughness={0.35}
           transparent
           opacity={0.95}
@@ -151,14 +191,17 @@ export function MushroomLamp({
         <sphereGeometry args={[0.27, seg, low ? 8 : 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial
           color="#ffb15c"
-          emissive="#ff8f33"
-          emissiveIntensity={1.25}
+          emissive="#ffa347"
+          emissiveMap={falloff}
+          emissiveIntensity={2.1}
           roughness={0.28}
           side={THREE.DoubleSide}
           transparent
           opacity={0.96}
         />
       </mesh>
+      {/* pool the shade throws on whatever it stands on */}
+      <LightPool position={[0, 0.02 / scale, 0]} size={2.9} color="#ff9d4e" opacity={0.42} />
       <mesh position={[0, 0.84, 0]}>
         <sphereGeometry args={[0.07, 12, 10]} />
         <meshStandardMaterial color="#fff0cf" emissive="#ffc27a" emissiveIntensity={3} />

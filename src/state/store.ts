@@ -32,6 +32,8 @@ export interface Notif {
   kind: 'story' | 'text' | 'credit' | 'treat'
   /** Signature sound, so each friend is recognisable without looking. */
   tone?: PingTone
+  /** Arrival time, printed in the log the way a terminal timestamps a line. */
+  at: number
 }
 
 let nextNotifId = 1
@@ -133,8 +135,9 @@ interface GameState {
   useHint: () => void
   bumpAttempts: () => void
   pushToast: (title: string, body: string) => void
-  notify: (n: Omit<Notif, 'id'>) => void
+  notify: (n: Omit<Notif, 'id' | 'at'>) => void
   dismissNotif: (id: number) => void
+  clearNotifs: () => void
   earn: (amount: number, reason: string) => void
   deliverBeat: (beatId: string) => void
   markChatsRead: () => void
@@ -356,9 +359,11 @@ export const useGame = create<GameState>((set, get) => ({
   pushToast: (title, body) => get().notify({ title, body, accent: '#ffb877', kind: 'story' }),
 
   notify: (n) =>
-    set((s) => ({ notifs: [...s.notifs, { ...n, id: nextNotifId++ }].slice(-3) })),
+    set((s) => ({ notifs: [...s.notifs, { ...n, id: nextNotifId++, at: Date.now() }].slice(-5) })),
 
   dismissNotif: (id) => set((s) => ({ notifs: s.notifs.filter((n) => n.id !== id) })),
+
+  clearNotifs: () => set({ notifs: [] }),
 
   earn: (amount, reason) => {
     set((s) => ({ credits: s.credits + amount }))
