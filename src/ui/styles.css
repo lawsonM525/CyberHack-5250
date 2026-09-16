@@ -408,17 +408,36 @@ button {
   font-size: 13px;
 }
 
+/* same dark-window language as the inbox and the terminal */
 .objective {
   position: absolute;
   top: 22px;
   left: 26px;
+  overflow: hidden;
   max-width: 340px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(18, 14, 26, 0.82), rgba(18, 14, 26, 0.5));
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-left: 2px solid var(--amber);
-  backdrop-filter: blur(8px);
+  padding: 9px 14px;
+  border-radius: 0;
+  font-family: var(--mono);
+  background: rgba(5, 4, 8, 0.9);
+  border: 1px solid rgba(255, 196, 132, 0.28);
+  border-left: 3px solid var(--amber);
+  box-shadow:
+    inset 0 0 34px rgba(255, 180, 110, 0.05),
+    0 0 18px rgba(255, 170, 90, 0.07);
+}
+
+.objective::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2) 0px,
+    rgba(0, 0, 0, 0.2) 1px,
+    rgba(255, 255, 255, 0.014) 1px,
+    rgba(255, 255, 255, 0.014) 3px
+  );
 }
 
 .objective .label {
@@ -427,11 +446,14 @@ button {
   color: var(--amber);
   text-transform: uppercase;
   margin-bottom: 5px;
+  text-shadow: 0 0 7px rgba(255, 180, 110, 0.35);
 }
 
 .objective .text {
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--ink);
+  text-shadow: 0 0 6px rgba(255, 180, 110, 0.18);
 }
 
 .prompt {
@@ -539,13 +561,17 @@ button {
 }
 
 .logwin {
+  position: relative;
   pointer-events: auto;
   width: 318px;
-  border-radius: 2px;
+  border-radius: 0;
   overflow: hidden;
-  background: rgba(6, 5, 9, 0.88);
-  border: 1px solid rgba(255, 196, 132, 0.3);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  background: rgba(5, 4, 8, 0.92);
+  border: 1px solid rgba(255, 196, 132, 0.34);
+  box-shadow:
+    inset 0 0 40px rgba(255, 180, 110, 0.05),
+    0 0 22px rgba(255, 170, 90, 0.08),
+    0 10px 28px rgba(0, 0, 0, 0.55);
   /* its own keyframe: the shared `slide` ends at translate(-50%, 0) and would
      drag this left-anchored window half off screen */
   animation: logwin-in 180ms ease both;
@@ -599,6 +625,32 @@ button {
 .wbtn.close:hover {
   background: #7a2b2b;
   color: #ffe6e0;
+}
+
+/* same tube treatment as the terminal so the inbox reads as another window
+   on the same desktop, not an app toast */
+.logwin::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.2) 1px,
+      rgba(255, 255, 255, 0.014) 1px,
+      rgba(255, 255, 255, 0.014) 3px
+    ),
+    radial-gradient(130% 100% at 50% 50%, rgba(255, 190, 120, 0.05), rgba(0, 0, 0, 0.3) 100%);
+}
+
+.logwin-title,
+.logwin-glyph,
+.logrow-from,
+.logrow-text {
+  text-shadow: 0 0 6px rgba(255, 180, 110, 0.2);
 }
 
 .logwin-body {
@@ -750,7 +802,9 @@ button {
   align-items: center;
   gap: 7px;
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: 0;
+  text-shadow: 0 0 6px rgba(255, 180, 110, 0.22);
+  box-shadow: 0 0 16px rgba(255, 170, 90, 0.07);
   font-family: var(--mono);
   font-size: 11px;
   color: #e0cdb2;
@@ -788,14 +842,15 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
+  padding: 5px 12px;
+  border-radius: 0;
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 13px;
   color: #ffe0ab;
-  background: rgba(14, 12, 20, 0.72);
-  border: 1px solid rgba(255, 200, 130, 0.28);
-  backdrop-filter: blur(8px);
+  text-shadow: 0 0 7px rgba(255, 180, 110, 0.3);
+  background: rgba(5, 4, 8, 0.9);
+  border: 1px solid rgba(255, 200, 130, 0.32);
+  box-shadow: 0 0 18px rgba(255, 170, 90, 0.07);
   transition: transform 160ms ease, border-color 160ms ease;
 }
 
@@ -1005,14 +1060,51 @@ button {
 .terminal {
   --tt: #ffb765;
   --tt-rgb: 255, 183, 101;
+  position: relative;
   width: min(960px, 94vw);
   height: min(620px, 88vh);
   display: grid;
   grid-template-columns: 190px 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  background: linear-gradient(160deg, #07070a 0%, #040406 100%);
-  border: 1px solid rgba(var(--tt-rgb), 0.24);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8), var(--shadow), 0 0 90px rgba(var(--tt-rgb), 0.09);
+  /* an OS window on a CRT, not a rounded product card */
+  border-radius: 2px;
+  background: #050508;
+  border: 1px solid rgba(var(--tt-rgb), 0.34);
+  box-shadow:
+    inset 0 0 70px rgba(var(--tt-rgb), 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    var(--shadow),
+    0 0 70px rgba(var(--tt-rgb), 0.12);
+}
+
+/* the CRT face: fine scanlines plus a phosphor bloom in the corners. Lines
+   are 3px apart at low alpha so glyph strokes stay crisp underneath. */
+.terminal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.19) 0px,
+      rgba(0, 0, 0, 0.19) 1px,
+      rgba(255, 255, 255, 0.012) 1px,
+      rgba(255, 255, 255, 0.012) 3px
+    ),
+    radial-gradient(120% 90% at 50% 50%, rgba(var(--tt-rgb), 0.05), rgba(0, 0, 0, 0.36) 100%);
+}
+
+/* phosphor: the text carries its own faint halo, the way a tube blooms */
+.terminal .view,
+.terminal .rail .brand,
+.terminal .banner,
+.terminal .msg-head,
+.terminal .readout,
+.terminal .code-input {
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.22);
 }
 
 .terminal[data-theme='green'] {
@@ -1028,6 +1120,42 @@ button {
 .terminal[data-theme='ice'] {
   --tt: #7fd8ff;
   --tt-rgb: 127, 216, 255;
+}
+
+/* narrow flat title bar with square controls, spanning rail and view */
+.termbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px 3px 9px;
+  background: #14100f;
+  border-bottom: 1px solid rgba(var(--tt-rgb), 0.26);
+  font-family: var(--mono);
+}
+
+.termbar-glyph {
+  color: var(--tt);
+  font-size: 11px;
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.4);
+}
+
+.termbar-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #d9cdbc;
+}
+
+.termbar-node {
+  margin-left: auto;
+  margin-right: 8px;
+  font-size: 10px;
+  color: rgba(var(--tt-rgb), 0.55);
+}
+
+.termbar .wbtn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .terminal .rail {
@@ -1053,8 +1181,8 @@ button {
   border: none;
   background: transparent;
   color: var(--dim);
-  padding: 10px 12px;
-  border-radius: 9px;
+  padding: 8px 12px;
+  border-radius: 0;
   font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1082,8 +1210,35 @@ button {
   box-shadow: 0 0 10px var(--plum);
 }
 
+/* square, mono chrome inside the window: no pills, no SaaS plates */
+.terminal .btn {
+  border-radius: 2px;
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+  backdrop-filter: none;
+}
+
+.terminal .btn.primary {
+  background: rgba(var(--tt-rgb), 0.16);
+  border: 1px solid rgba(var(--tt-rgb), 0.5);
+  color: var(--tt);
+  box-shadow: 0 0 18px rgba(var(--tt-rgb), 0.12);
+  text-shadow: 0 0 6px rgba(var(--tt-rgb), 0.35);
+}
+
+.terminal .btn:hover {
+  transform: none;
+  background: rgba(var(--tt-rgb), 0.12);
+  border-color: rgba(var(--tt-rgb), 0.45);
+}
+
+.termquit {
+  width: 100%;
+  border-color: rgba(var(--tt-rgb), 0.28) !important;
+}
+
 .terminal .view {
-  padding: 24px 28px;
+  padding: 18px 22px;
   overflow-y: auto;
   font-family: var(--mono);
   font-size: 13px;
@@ -1120,10 +1275,12 @@ button {
 
 .msg-subject {
   color: #f4ece0;
-  font-size: 17px;
-  font-family: var(--font);
-  letter-spacing: 0.02em;
-  margin: 8px 0 14px;
+  font-size: 14px;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  margin: 6px 0 12px;
+  text-shadow: 0 0 8px rgba(var(--tt-rgb), 0.2);
 }
 
 .msg-body p {
@@ -1161,7 +1318,7 @@ button {
   padding: 12px 14px;
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(var(--tt-rgb), 0.35);
-  border-radius: 10px;
+  border-radius: 2px;
   color: var(--tt);
   outline: none;
 }
@@ -1177,8 +1334,8 @@ button {
 }
 
 .readout {
-  border: 1px solid rgba(var(--tt-rgb), 0.12);
-  border-radius: 10px;
+  border: 1px solid rgba(var(--tt-rgb), 0.16);
+  border-radius: 2px;
   padding: 14px 16px;
   background: rgba(0, 0, 0, 0.45);
   min-height: 92px;
@@ -1207,7 +1364,7 @@ button {
 
 .note-card {
   border: 1px solid rgba(var(--tt-rgb), 0.14);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.025);
 }

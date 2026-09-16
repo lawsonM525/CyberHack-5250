@@ -107,6 +107,20 @@ export function Terminal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="panel terminal" data-theme={theme} role="dialog" aria-label="Kestrel terminal">
+      <div className="termbar">
+        <span className="termbar-glyph">&gt;_</span>
+        <span className="termbar-title">kestrel os 4.2 — /dev/kingsley</span>
+        <span className="termbar-node">12F-WEST-ORCHIDHOUSE</span>
+        <button className="wbtn" disabled aria-hidden="true" tabIndex={-1}>
+          _
+        </button>
+        <button className="wbtn" disabled aria-hidden="true" tabIndex={-1}>
+          □
+        </button>
+        <button className="wbtn close" onClick={onClose} aria-label="Close terminal">
+          ×
+        </button>
+      </div>
       <div className="rail">
         <div className="brand">KESTREL OS 4.2</div>
         <button className={`tab ${tab === 'inbox' ? 'on' : ''}`} onClick={() => { setTab('inbox'); audio.uiTick() }}>
@@ -135,7 +149,7 @@ export function Terminal({ onClose }: { onClose: () => void }) {
           Display
         </button>
         <div style={{ flex: 1 }} />
-        <button className="btn ghost small" onClick={onClose}>
+        <button className="btn ghost small termquit" onClick={onClose}>
           Esc — step away
         </button>
       </div>
