@@ -60,8 +60,10 @@ function noiseBuffer(ctx: AudioContext, seconds: number, brown = false): AudioBu
 
 /** Recorded soul-jazz beds. The synth scheduler below is only a fallback. */
 export const TRACKS = [
-  { id: 'rhodes', name: 'Rhodes, rainy window', file: 'audio/latenight-rhodes.m4a' },
-  { id: 'trio', name: 'Piano trio, 2am', file: 'audio/latenight-trio.m4a' },
+  { id: 'rhodes', name: 'Swing trio, rainy window', file: 'audio/latenight-rhodes.m4a' },
+  { id: 'trio', name: 'Soul ballad, 2am', file: 'audio/latenight-trio.m4a' },
+  { id: 'rhodes-v1', name: 'Rhodes, rainy window (original)', file: 'audio/latenight-rhodes-v1.m4a' },
+  { id: 'trio-v1', name: 'Piano trio, 2am (original)', file: 'audio/latenight-trio-v1.m4a' },
 ] as const
 
 export type TrackId = (typeof TRACKS)[number]['id']

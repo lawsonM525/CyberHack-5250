@@ -58,7 +58,7 @@ function Rig({ quality }: { quality: 'low' | 'medium' | 'high' }) {
 
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping
-    gl.toneMappingExposure = 1.06
+    gl.toneMappingExposure = 1.14
     gl.shadowMap.enabled = quality !== 'low'
     gl.shadowMap.type = THREE.PCFShadowMap
     scene.fog = new THREE.FogExp2(new THREE.Color('#0a0e1c'), 0.0075)
@@ -75,20 +75,20 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
   return (
     <group>
       {/* warm lamplight bounce, not the cold blue wash the room used to sit in */}
-      <ambientLight color="#6f5744" intensity={1.5} />
-      <hemisphereLight color="#b58a5e" groundColor="#4a3222" intensity={1.25} />
+      <ambientLight color="#8d8294" intensity={1.75} />
+      <hemisphereLight color="#c3b0d8" groundColor="#5c4038" intensity={1.45} />
       {/* city spill through the window */}
-      <directionalLight color="#8fb0ff" intensity={0.85} position={[-2.5, 4.5, -12]} />
-      <directionalLight color="#ffc188" intensity={0.8} position={[4, 3, 6]} />
+      <directionalLight color="#9fc4ff" intensity={1.15} position={[-2.5, 4.5, -12]} />
+      <directionalLight color="#ffd3a8" intensity={0.7} position={[4, 3, 6]} />
       {/* desk lamp, floor lamp and vanity bulbs as warm pools */}
       <pointLight color="#ffb46a" intensity={9} distance={5.5} decay={2} position={[-3.4, 1.35, -3.3]} />
       <pointLight color="#ffc890" intensity={12} distance={6} decay={2} position={[-5.5, 1.7, 2.9]} />
       {!low && <pointLight color="#ffd2a8" intensity={8} distance={4.5} decay={2} position={[5.3, 1.75, 0.1]} />}
-      {!low && <pointLight color="#6fd9ff" intensity={5} distance={4} decay={2} position={[-4.2, 1.25, -3.5]} />}
+      {!low && <pointLight color="#6fd9ff" intensity={7} distance={4.4} decay={2} position={[-4.2, 1.25, -3.5]} />}
       {/* warm practical over the room */}
       <spotLight
-        color="#ffc48c"
-        intensity={44}
+        color="#ffe0c4"
+        intensity={46}
         distance={11}
         angle={0.95}
         penumbra={0.85}
@@ -99,7 +99,7 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
         shadow-mapSize-height={quality === 'high' ? 1024 : 512}
         shadow-bias={-0.0015}
       />
-      {!low && <pointLight color="#ff9ad0" intensity={2.2} distance={5} decay={2} position={[5.2, 1.9, 0.1]} />}
+      {!low && <pointLight color="#ff8ac8" intensity={4.5} distance={5.4} decay={2} position={[5.2, 1.9, 0.1]} />}
     </group>
   )
 }

@@ -68,14 +68,14 @@ function useRoomMaterials(low: boolean) {
     floorTex.repeat.set(6, 4.5)
     floorTex.rotation = Math.PI / 2
     // matte oiled oak: the old gloss turned the empty floor into a mirror
-    const floor = new THREE.MeshStandardMaterial({ map: floorTex, color: '#8f6f50', roughness: 0.78, metalness: 0.0 })
+    const floor = new THREE.MeshStandardMaterial({ map: floorTex, color: '#9a7c60', roughness: 0.78, metalness: 0.0 })
 
     const wallTex = plasterTexture().clone()
     wallTex.needsUpdate = true
     wallTex.repeat.set(3, 1.4)
-    const wall = new THREE.MeshStandardMaterial({ map: wallTex, color: '#8a7460', roughness: 0.95 })
+    const wall = new THREE.MeshStandardMaterial({ map: wallTex, color: '#a3919c', roughness: 0.95 })
 
-    const ceil = new THREE.MeshStandardMaterial({ color: '#3a2f28', roughness: 1 })
+    const ceil = new THREE.MeshStandardMaterial({ color: '#4a3d48', roughness: 1 })
     const frame = new THREE.MeshStandardMaterial({ color: '#23262e', metalness: 0.7, roughness: 0.35 })
     // transmission needs a second render pass; far too expensive on the low tier
     const glass = low
@@ -266,46 +266,46 @@ export function Apartment({
         <boxGeometry args={[0.03, 0.03, ROOM.z1 - ROOM.z0 - 0.6]} />
         <meshBasicMaterial color="#4fd0c0" toneMapped={false} />
       </mesh>
-      <pointLight position={[0, H - 0.2, ROOM.z1 - 0.5]} color="#c2447a" intensity={1.2} distance={7} decay={2} />
-      {!low && <pointLight position={[ROOM.x0 + 0.5, H - 0.2, 0]} color="#4fd0c0" intensity={0.9} distance={6} decay={2} />}
+      <pointLight position={[0, H - 0.2, ROOM.z1 - 0.5]} color="#ff4f97" intensity={2.2} distance={7} decay={2} />
+      {!low && <pointLight position={[ROOM.x0 + 0.5, H - 0.2, 0]} color="#4fd0c0" intensity={1.8} distance={6} decay={2} />}
       {/* warm practical fill: keeps the middle of the room readable without
           washing out the neon coming through the glass */}
-      <pointLight position={[0.2, 2.5, -1.2]} color="#ffb877" intensity={12} distance={12} decay={2} />
-      <pointLight position={[-2.2, 2.4, 2.4]} color="#ffa864" intensity={9} distance={11} decay={2} />
+      <pointLight position={[0.2, 2.5, -1.2]} color="#ffd6b0" intensity={13} distance={12} decay={2} />
+      <pointLight position={[-2.2, 2.4, 2.4]} color="#ffc9d8" intensity={10} distance={11} decay={2} />
       {/* wall wash so the plaster never falls to black behind the furniture */}
-      <pointLight position={[3.9, 2.4, 2.0]} color="#ffc48a" intensity={9} distance={11} decay={2} />
+      <pointLight position={[3.9, 2.4, 2.0]} color="#bcd4ff" intensity={10} distance={11} decay={2} />
       {/* baked pools: the warmth survives the point-light budget and costs one
           unlit quad each instead of another practical */}
       <LightPool
         position={[0, 2.1, ROOM.z1 - 0.13]}
         rotation={[0, Math.PI, 0]}
         size={5.2}
-        color="#ff9852"
-        opacity={0.3}
+        color="#ffb98a"
+        opacity={0.28}
       />
       <LightPool
         position={[-4.4, 1.9, ROOM.z1 - 0.13]}
         rotation={[0, Math.PI, 0]}
         size={3.4}
-        color="#ffab6a"
-        opacity={0.26}
+        color="#ff9ec6"
+        opacity={0.24}
       />
       <LightPool
         position={[ROOM.x0 + 0.14, 1.95, 0.6]}
         rotation={[0, Math.PI / 2, 0]}
         size={3.8}
-        color="#ffa25c"
-        opacity={0.26}
+        color="#9fd7ff"
+        opacity={0.22}
       />
       <LightPool
         position={[ROOM.x1 - 0.14, 1.9, 1.2]}
         rotation={[0, -Math.PI / 2, 0]}
         size={3.6}
-        color="#ffb271"
-        opacity={0.24}
+        color="#c7a8ff"
+        opacity={0.22}
       />
-      <LightPool position={[-2.2, 0.03, 2.4]} size={4.4} color="#ff9a4e" opacity={0.3} />
-      <LightPool position={[3.6, 0.03, 1.2]} size={3.6} color="#ffab63" opacity={0.24} />
+      <LightPool position={[-2.2, 0.03, 2.4]} size={4.4} color="#ffc08a" opacity={0.26} />
+      <LightPool position={[3.6, 0.03, 1.2]} size={3.6} color="#8fd8d0" opacity={0.2} />
 
       {/* window garden: slatted seat + the four clue plants, each in its own pot */}
       <WindowSeat />
@@ -342,9 +342,9 @@ export function Apartment({
       <IvyFall position={[-1.95, 2.42, 3.78]} rotation={[0, Math.PI, 0]} strands={4} length={1.0} spread={0.5} />
 
       {/* soft furnishings in the open floor the opening camera looks across */}
-      <Pouf position={[-1.6, 0, -1.5]} color="#8a5a3c" radius={0.38} />
-      <Pouf position={[1.75, 0, -0.9]} color="#5c4a60" radius={0.32} />
-      <Pouf position={[-0.9, 0, -2.6]} color="#6a3a4e" radius={0.3} />
+      <Pouf position={[-1.6, 0, -1.5]} color="#3f7f7a" radius={0.38} />
+      <Pouf position={[1.75, 0, -0.9]} color="#6a54a0" radius={0.32} />
+      <Pouf position={[-0.9, 0, -2.6]} color="#b5487a" radius={0.3} />
       <SideTable position={[0.35, 0, -2.3]} />
       {/* things left out on the floor: what stops a rug reading as empty */}
       <group position={[0.55, 0, -1.15]} rotation={[0, 0.4, 0]}>
