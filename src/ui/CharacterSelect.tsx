@@ -5,9 +5,9 @@ import { audio } from '../audio/audio'
 import './select.css'
 
 const CARD: Record<LookId, { art: string; blurb: string }> = {
-  orchid: { art: 'card-orchid.webp', blurb: 'teal bomber' },
-  gold: { art: 'card-gold.webp', blurb: 'satin slip' },
-  cozy: { art: 'card-cozy.webp', blurb: 'velvet set' },
+  orchid: { art: 'card-orchid.webp', blurb: 'locs & beads' },
+  nova: { art: 'card-nova.webp', blurb: 'platinum bob' },
+  jade: { art: 'card-jade.webp', blurb: 'silk & cargo' },
 }
 
 /**
@@ -33,7 +33,7 @@ export function CharacterSelect() {
       </div>
 
       <header className="cselect-head">
-        <p className="kicker">Choose tonight&rsquo;s look</p>
+        <p className="kicker">Choose tonight&rsquo;s runner</p>
         <h2>{preset.name}</h2>
         <p className="tagline">{preset.tagline}</p>
       </header>
@@ -49,7 +49,7 @@ export function CharacterSelect() {
             }}
             aria-pressed={l.id === look}
           >
-            <img src={`${art}${CARD[l.id].art}`} alt={`${l.name} outfit`} />
+            <img src={`${art}${CARD[l.id].art}`} alt={l.name} />
             <span className="plate">
               <b>{l.name}</b>
               <span>{CARD[l.id].blurb}</span>
@@ -72,8 +72,7 @@ export function CharacterSelect() {
           Back
         </button>
         <p className="note">
-          One rig, three wardrobes — hair beads, jewellery, nails and fabric all change with the card, and your
-          pick is saved with the run.
+          Three runners, three silhouettes — each is her own model, and your pick is saved with the run.
         </p>
       </footer>
     </div>

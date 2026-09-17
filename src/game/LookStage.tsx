@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { HeroBody } from './Heroine'
-import { getLook, type LookId } from '../content/presets'
+import { getLook, rigFor, type LookId } from '../content/presets'
 import type { MotionState } from './Character'
 
 /**
@@ -63,7 +63,7 @@ function Poser({ look, reducedMotion }: { look: ReturnType<typeof getLook>; redu
     g.current.rotation.y = Math.PI + 0.22 + t
   })
   return (
-    <group ref={g} scale={1.68}>
+    <group ref={g} scale={1.68 * rigFor(look).heightScale}>
       <HeroBody look={look} motion={motion} reducedMotion={reducedMotion} />
     </group>
   )

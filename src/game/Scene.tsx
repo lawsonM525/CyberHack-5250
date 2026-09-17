@@ -8,7 +8,7 @@ import { Player } from './Player'
 import { HeroBody } from './Heroine'
 import { useGame } from '../state/store'
 import { useUi } from '../state/ui'
-import { getLook, type LookId } from '../content/presets'
+import { getLook, rigFor, type LookId } from '../content/presets'
 import type { MotionState } from './Character'
 
 function skyTexture(): THREE.Texture {
@@ -328,7 +328,7 @@ function Turntable({ look }: { look: ReturnType<typeof getLook> }) {
     if (g.current) g.current.rotation.y = Math.PI + Math.sin(clock.elapsedTime * 0.35) * 0.6
   })
   return (
-    <group ref={g} position={[0, 0, 0]}>
+    <group ref={g} position={[0, 0, 0]} scale={rigFor(look).heightScale}>
       <HeroBody look={look} motion={motion} />
     </group>
   )

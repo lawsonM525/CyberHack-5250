@@ -4,39 +4,36 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { Character, type MotionState } from './Character'
-import type { LookPreset } from '../content/presets'
+import { rigFor, type LookPreset, type RigProfile } from '../content/presets'
 
 const ANIMS = ['idle', 'walk', 'run'] as const
 type AnimName = (typeof ANIMS)[number]
 
 /**
  * Sitting is posed, not animated: the retargeted clip set is idle/walk/run only.
- * The deltas are written in the character's own frame — she faces +X, so +Z
- * swings a limb forward and Y spreads it sideways — and converted into each
- * bone's parent space at runtime, because the retargeted rig's local bone axes
- * do not agree with each other.
+ * The deltas are written in the character's own frame — a swing around the rig's
+ * own forward-facing axis moves a limb forward and Y spreads it sideways — and
+ * converted into each bone's parent space at runtime, because the retargeted
+ * rigs' local bone axes do not agree with each other.
  */
-const SIT_POSE: { bone: string; swing: number; spread: number }[] = [
-  { bone: 'L_Thigh', swing: 1.45, spread: 0.12 },
-  { bone: 'R_Thigh', swing: 1.45, spread: -0.12 },
-  { bone: 'L_Calf', swing: -1.5, spread: 0 },
-  { bone: 'R_Calf', swing: -1.5, spread: 0 },
-  { bone: 'L_Foot', swing: 0.0, spread: 0 },
-  { bone: 'R_Foot', swing: 0.0, spread: 0 },
-  { bone: 'Waist', swing: -0.16, spread: 0 },
-  { bone: 'Spine01', swing: -0.08, spread: 0 },
-  { bone: 'L_Upperarm', swing: 1.15, spread: 0.14 },
-  { bone: 'R_Upperarm', swing: 1.15, spread: -0.14 },
-  { bone: 'L_Forearm', swing: 0.7, spread: 0 },
-  { bone: 'R_Forearm', swing: 0.7, spread: 0 },
-]
-
-if (import.meta.env.DEV) {
-  // live handle for tuning the desk pose against the real chair and keyboard
-  ;(window as unknown as { __sit?: unknown }).__sit = SIT_POSE
+function sitPose(rig: RigProfile): { bone: string; swing: number; spread: number }[] {
+  const b = rig.bones
+  const s = rig.sit
+  return [
+    { bone: b.thighL, swing: s.thigh, spread: s.spread },
+    { bone: b.thighR, swing: s.thigh, spread: -s.spread },
+    { bone: b.calfL, swing: s.calf, spread: 0 },
+    { bone: b.calfR, swing: s.calf, spread: 0 },
+    { bone: b.waist, swing: s.waist, spread: 0 },
+    { bone: b.spine, swing: s.spine, spread: 0 },
+    { bone: b.upperarmL, swing: s.upperarm, spread: s.armSpread },
+    { bone: b.upperarmR, swing: s.upperarm, spread: -s.armSpread },
+    { bone: b.forearmL, swing: s.forearm, spread: 0 },
+    { bone: b.forearmR, swing: s.forearm, spread: 0 },
+  ]
 }
 
-const animUrl = (clips: string, name: AnimName) =>
+const animUrl = (clips: string, name: AnimName | 'sit') =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`
 
@@ -79,6 +76,7 @@ export function Heroine({
   motion: React.RefObject<MotionState>
   reducedMotion?: boolean
 }) {
+  const rig = rigFor(look)
   const { scene } = useGLTF(modelUrl(look.model))
   const outfitMap = useOutfitMap(look.skinTexture)
   const idle = useGLTF(animUrl(look.clips, 'idle'))
@@ -143,18 +141,39 @@ export function Heroine({
   )
 
   const weights = useRef({ idle: 1, walk: 0, run: 0 })
+  const sitWeight = useRef(0)
 
   const seated = useMemo(
     () =>
-      SIT_POSE.flatMap((spec) => {
+      sitPose(rig).flatMap((spec) => {
         const bone = object.getObjectByName(spec.bone)
         if (!bone || !bone.parent) return []
-        return [{ bone, parent: bone.parent, rest: bone.quaternion.clone(), spec }]
+        return [
+          {
+            bone,
+            parent: bone.parent,
+            rest: bone.quaternion.clone(),
+            base: bone.quaternion.clone(),
+            spec,
+          },
+        ]
       }),
-    [object],
+    [object, rig],
+  )
+  const hips = useMemo(
+    () => ({
+      left: object.getObjectByName(rig.bones.thighL) ?? null,
+      right: object.getObjectByName(rig.bones.thighR) ?? null,
+    }),
+    [object, rig],
   )
   const pose = useRef({
     euler: new THREE.Euler(0, 0, 0, 'YZX'),
+    lateral: new THREE.Vector3(1, 0, 0),
+    up: new THREE.Vector3(0, 1, 0),
+    left: new THREE.Vector3(),
+    right: new THREE.Vector3(),
+    spreadRot: new THREE.Quaternion(),
     rot: new THREE.Quaternion(),
     frame: new THREE.Quaternion(),
     frameInv: new THREE.Quaternion(),
@@ -171,29 +190,54 @@ export function Heroine({
       walk: gait <= 1 ? gait : Math.max(0, 2 - gait),
       run: Math.max(0, gait - 1),
     }
+    const sit = THREE.MathUtils.clamp(motion.current?.sit ?? 0, 0, 1)
+    // a retargeted seated clip owns the whole body while she is at the desk, so
+    // the gait clips fade out underneath it rather than fighting over the hips
+    const gaitGain = rig.sitClip ? 1 - sit : 1
     const k = Math.min(1, delta * 9)
     for (const name of ANIMS) {
       weights.current[name] += (target[name] - weights.current[name]) * k
-      actions[name]?.setEffectiveWeight(weights.current[name])
+      actions[name]?.setEffectiveWeight(weights.current[name] * gaitGain)
     }
+    sitWeight.current = sit
     // running reads better slightly quicker than the retargeted clip's own tempo
     if (actions.run) actions.run.timeScale = 1.15
     mixer.update(reducedMotion ? delta * 0.6 : delta)
 
-    const sit = THREE.MathUtils.clamp(motion.current?.sit ?? 0, 0, 1)
-    if (sit > 0.002) {
+    if (rig.sitClip) return
+    if (sit <= 0.002) {
+      // she is standing, so the clip owns these joints: keep a snapshot of the
+      // standing pose to swing the desk pose out of, instead of compounding
+      for (const s of seated) s.base.copy(s.bone.quaternion)
+      if (rig.sit.anatomical && hips.left && hips.right) {
+        // the flexion axis is the line through both hips, measured rather than
+        // assumed: this rig's bind orientation does not match the world axes
+        const p = pose.current
+        hips.left.getWorldPosition(p.left)
+        hips.right.getWorldPosition(p.right)
+        if (p.left.distanceToSquared(p.right) > 1e-6) p.lateral.copy(p.left).sub(p.right).normalize()
+      }
+    } else {
       const p = pose.current
       object.getWorldQuaternion(p.frame)
       p.frameInv.copy(p.frame).invert()
-      for (const { bone, parent, rest, spec } of seated) {
+      for (const { bone, parent, rest, base, spec } of seated) {
         const { swing, spread } = spec
-        // the clips do not key every one of these joints, so start from the
-        // bind pose each frame rather than compounding the previous delta
-        bone.quaternion.copy(rest)
-        p.euler.set(0, spread * sit, swing * sit)
-        p.rot.setFromEuler(p.euler)
-        // character frame -> world, then world -> the bone's parent space
-        p.rot.premultiply(p.frame).multiply(p.frameInv)
+        // start from a fixed pose every frame rather than compounding the last
+        // delta: the bind pose where it is upright, the captured standing pose
+        // on rigs whose retargeted bind has the legs folded away
+        bone.quaternion.copy(rig.sit.anatomical ? base : rest)
+        if (rig.sit.anatomical) {
+          p.rot.setFromAxisAngle(p.lateral, swing * sit)
+          p.spreadRot.setFromAxisAngle(p.up, spread * sit)
+          p.rot.multiply(p.spreadRot)
+        } else {
+          if (rig.swingAxis === 'z') p.euler.set(0, spread * sit, swing * sit)
+          else p.euler.set(swing * sit, spread * sit, 0)
+          p.rot.setFromEuler(p.euler)
+          // character frame -> world, then world -> the bone's parent space
+          p.rot.premultiply(p.frame).multiply(p.frameInv)
+        }
         parent.getWorldQuaternion(p.parent)
         p.parentInv.copy(p.parent).invert()
         bone.quaternion.premultiply(p.parent).premultiply(p.rot).premultiply(p.parentInv)
@@ -201,8 +245,58 @@ export function Heroine({
     }
   })
 
-  // the generated rig faces +X; the controller's yaw convention is -Z
-  return <primitive object={object} rotation-y={Math.PI / 2} />
+  return (
+    <>
+      {rig.sitClip && (
+        <Suspense fallback={null}>
+          <SitClip mixer={mixer} url={animUrl(look.clips, 'sit')} weight={sitWeight} />
+        </Suspense>
+      )}
+      <primitive object={object} position-y={-rig.footLift} rotation-y={rig.faceYaw} />
+    </>
+  )
+}
+
+/** Seated idle clip, faded in over the gait clips while she is at the desk. */
+function SitClip({
+  mixer,
+  url,
+  weight,
+}: {
+  mixer: THREE.AnimationMixer
+  url: string
+  weight: React.RefObject<number>
+}) {
+  const { animations } = useGLTF(url)
+  const action = useMemo(() => {
+    if (!animations.length) return null
+    const a = mixer.clipAction(animations[0])
+    a.setLoop(THREE.LoopRepeat, Infinity)
+    return a
+  }, [mixer, animations])
+
+  useEffect(() => {
+    if (!action) return
+    action.reset()
+    action.enabled = true
+    action.setEffectiveWeight(0)
+    action.play()
+    return () => {
+      action.stop()
+    }
+  }, [action])
+
+  useFrame(() => {
+    if (!action) return
+    const w = weight.current ?? 0
+    if (w > 0 && !action.isRunning()) {
+      action.enabled = true
+      action.play()
+    }
+    action.setEffectiveWeight(w)
+  })
+
+  return null
 }
 
 class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
@@ -236,4 +330,5 @@ export function HeroBody(props: {
 export function preloadHeroine(look: LookPreset) {
   useGLTF.preload(modelUrl(look.model))
   for (const name of ANIMS) useGLTF.preload(animUrl(look.clips, name))
+  if (rigFor(look).sitClip) useGLTF.preload(animUrl(look.clips, 'sit'))
 }

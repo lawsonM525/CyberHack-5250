@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { MotionState } from './Character'
 import { HeroBody } from './Heroine'
-import { getLook } from '../content/presets'
+import { getLook, rigFor } from '../content/presets'
 import { INTERACTABLES, cameraBlocked, resolveMove } from './world'
 import { useGame } from '../state/store'
 import { audio } from '../audio/audio'
@@ -21,7 +21,7 @@ const HEAD = 1.4
  */
 const HERO_SCALE = 1.68
 /** Desk chair seat, and where she stands up again so she never wakes inside it. */
-const SEAT = { x: -3.9, z: -3.12, yaw: 0, drop: 0.378 }
+const SEAT = { x: -3.9, z: -3.12, yaw: 0 }
 const STAND = { x: -3.9, z: -2.2 }
 /** Close enough that she, not the rug, is the subject of the frame. */
 const DIST = 3.1
@@ -70,6 +70,7 @@ export function Player({
   const overlay = useGame((s) => s.overlay)
   const settings = useGame((s) => s.settings)
   const look = useMemo(() => getLook(lookId), [lookId])
+  const rig = rigFor(look)
   const bridgeOpen = stage === 'unlocked' || stage === 'crossed'
 
   const root = useRef<THREE.Group>(null)
@@ -222,7 +223,10 @@ export function Player({
     motion.current.sit = sit.current
 
     if (root.current) {
-      root.current.position.set(pos.current.x, -sit.current * SEAT.drop, pos.current.y)
+      // a rig sitting from a retargeted clip drops its own pelvis onto the pad,
+      // so only the posed rigs need the root pushed down under them
+      const drop = rig.sitClip ? 0 : rig.seatDrop
+      root.current.position.set(pos.current.x, -sit.current * drop, pos.current.y)
       root.current.rotation.y = bodyYaw.current
     }
 
@@ -231,7 +235,7 @@ export function Player({
     // her and the room: aiming at standing head height put the lens under the
     // seat pad and framed the empty air above her
     const sitK = THREE.MathUtils.clamp(sit.current, 0, 1)
-    const pivot = new THREE.Vector3(pos.current.x, HEAD - sitK * SEAT.drop, pos.current.y)
+    const pivot = new THREE.Vector3(pos.current.x, HEAD - sitK * rig.seatDrop, pos.current.y)
     const dirY = Math.sin(camPitch.current)
 
     /** How far the boom can run down a heading before it reaches solid mass. */
@@ -496,7 +500,7 @@ export function Player({
 
   return (
     <group ref={root}>
-      <group scale={HERO_SCALE}>
+      <group scale={HERO_SCALE * rig.heightScale}>
         <HeroBody look={look} motion={motion} reducedMotion={settings.reducedMotion} />
       </group>
       <pointLight position={[0, 1.4, 0.35]} color="#ffd9b0" intensity={0.35} distance={2.6} decay={2} />
