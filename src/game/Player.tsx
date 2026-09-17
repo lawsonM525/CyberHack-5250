@@ -1,0 +1,513 @@
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
+import type { MotionState } from './Character'
+import { HeroBody } from './Heroine'
+import { getLook, rigFor } from '../content/presets'
+import { INTERACTABLES, cameraBlocked, resolveMove } from './world'
+import { useGame } from '../state/store'
+import { audio } from '../audio/audio'
+import { drainMouse, isPointerLocked, readInput } from './input'
+
+const WALK = 2.05
+const RUN = 4.1
+const ACCEL = 14
+/** Roughly her eyeline, and what the boom aims at. */
+const HEAD = 1.4
+/**
+ * The rig ships about a metre tall, so at the old 1.09 she stood 1.08 m in a
+ * room built to human scale: shorter than the desk chair's back, which is why
+ * the furniture dwarfed her and the chair swallowed her when she sat down.
+ */
+const HERO_SCALE = 1.68
+/** Desk chair seat, and where she stands up again so she never wakes inside it. */
+const SEAT = { x: -3.9, z: -3.12, yaw: 0 }
+const STAND = { x: -3.9, z: -2.2 }
+/** Close enough that she, not the rug, is the subject of the frame. */
+const DIST = 3.1
+const MIN_DIST = 1.5
+/** Where the boom swings for the arrival reveal: back across the span, over the city. */
+const REVEAL_YAW = Math.PI * 0.92
+const REVEAL_PITCH = 0.2
+/** Shorter than this and the boom would be inside whatever is behind her. */
+const MIN_LENS = 0.85
+const UP = new THREE.Vector3(0, 1, 0)
+const TMP_SIZE = new THREE.Vector3()
+const KNEES = new THREE.Vector3()
+const SIDE = new THREE.Vector3()
+/** How much of a rail survives when the lens is looking through it. */
+const FADED = 0.05
+
+/** Thin metalwork the boom cannot dodge, tagged where it is built. */
+function isFadeable(node: THREE.Object3D): boolean {
+  let p: THREE.Object3D | null = node
+  while (p) {
+    if (p.userData.camFade) return true
+    p = p.parent
+  }
+  return false
+}
+
+function isDescendant(node: THREE.Object3D, ancestor: THREE.Object3D): boolean {
+  let p: THREE.Object3D | null = node
+  while (p) {
+    if (p === ancestor) return true
+    p = p.parent
+  }
+  return false
+}
+
+export function Player({
+  active,
+  onFocus,
+}: {
+  active: boolean
+  onFocus: (id: string | null) => void
+}) {
+  const lookId = useGame((s) => s.look)
+  const stage = useGame((s) => s.stage)
+  const respawn = useGame((s) => s.respawn)
+  const overlay = useGame((s) => s.overlay)
+  const settings = useGame((s) => s.settings)
+  const look = useMemo(() => getLook(lookId), [lookId])
+  const rig = rigFor(look)
+  const bridgeOpen = stage === 'unlocked' || stage === 'crossed'
+
+  const root = useRef<THREE.Group>(null)
+  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 0, sit: 0 })
+  const sit = useRef(0)
+  const seated = useRef(false)
+  const pos = useRef(new THREE.Vector2(respawn.at[0], respawn.at[1]))
+  const vel = useRef(new THREE.Vector2())
+  const bodyYaw = useRef(respawn.facing)
+  const camYaw = useRef(respawn.facing)
+  const camPitch = useRef(0.05)
+  const camPos = useRef(new THREE.Vector3())
+  const stepDist = useRef(0)
+  const focusRef = useRef<string | null>(null)
+  const saveTimer = useRef(0)
+  const camInit = useRef(false)
+  const reveal = useRef(0)
+  const lastStage = useRef(stage)
+  const occluders = useRef<THREE.Mesh[]>([])
+  const fadeable = useRef<THREE.Mesh[]>([])
+  const occluderAge = useRef(0)
+  const raycaster = useRef(new THREE.Raycaster())
+  const { camera, scene } = useThree()
+
+  useEffect(() => {
+    if (stage === 'crossed' && lastStage.current !== 'crossed') reveal.current = 5
+    lastStage.current = stage
+  }, [stage])
+
+  useEffect(() => {
+    pos.current.set(respawn.at[0], respawn.at[1])
+    vel.current.set(0, 0)
+    bodyYaw.current = respawn.facing
+    camYaw.current = respawn.facing
+    camPitch.current = 0.05
+    camInit.current = false
+    drainMouse()
+    // a prompt from wherever she was standing before must not survive the teleport
+    focusRef.current = null
+    onFocus(null)
+  }, [respawn, onFocus])
+
+  useFrame((_, rawDelta) => {
+    const delta = Math.min(rawDelta, 0.1)
+    const input = readInput()
+
+    if (reveal.current > 0) {
+      reveal.current = Math.max(0, reveal.current - delta)
+      const k = Math.min(1, delta * 1.6)
+      let diff = REVEAL_YAW - camYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      camYaw.current += diff * k
+      camPitch.current += (REVEAL_PITCH - camPitch.current) * k
+    }
+
+    if (active) {
+      if (input.mouseX || input.mouseY) reveal.current = 0
+      const sens = 0.0022 * settings.sensitivity
+      camYaw.current -= input.mouseX * sens
+      camPitch.current += (settings.invertY ? -1 : 1) * input.mouseY * sens * 0.8
+      // the Kingsley deck is roofed; above ~0.4 the boom reaches into the canopy
+      const top = pos.current.y < -16.3 ? 0.4 : 0.72
+      camPitch.current = THREE.MathUtils.clamp(camPitch.current, -0.42, top)
+      if (input.recenter) camYaw.current = bodyYaw.current
+    }
+
+    // camera-relative desired velocity
+    const f = active ? input.forward : 0
+    const s = active ? input.strafe : 0
+    const mag = Math.min(1, Math.hypot(f, s))
+    const speed = (input.run && active ? RUN : WALK) * mag
+    let dx = 0
+    let dz = 0
+    if (mag > 0.01) {
+      const sinY = Math.sin(camYaw.current)
+      const cosY = Math.cos(camYaw.current)
+      // forward is -Z rotated by camera yaw
+      const fx = -sinY
+      const fz = -cosY
+      const rx = cosY
+      const rz = -sinY
+      const nx = (fx * f + rx * s) / Math.hypot(f, s)
+      const nz = (fz * f + rz * s) / Math.hypot(f, s)
+      dx = nx * speed
+      dz = nz * speed
+    }
+    vel.current.x += (dx - vel.current.x) * Math.min(1, ACCEL * delta)
+    vel.current.y += (dz - vel.current.y) * Math.min(1, ACCEL * delta)
+    if (vel.current.lengthSq() < 0.0004) vel.current.set(0, 0)
+
+    const [nxp, nzp] = resolveMove(
+      pos.current.x,
+      pos.current.y,
+      pos.current.x + vel.current.x * delta,
+      pos.current.y + vel.current.y * delta,
+      bridgeOpen,
+    )
+    const moved = Math.hypot(nxp - pos.current.x, nzp - pos.current.y)
+    pos.current.set(nxp, nzp)
+
+    const actualSpeed = delta > 0 ? moved / delta : 0
+    if (actualSpeed > 0.15) {
+      const targetYaw = Math.atan2(vel.current.x, vel.current.y) + Math.PI
+      let diff = targetYaw - bodyYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      bodyYaw.current += diff * Math.min(1, delta * 11)
+      motion.current.turning = diff
+      motion.current.still = 0
+    } else {
+      motion.current.turning = 0
+      motion.current.still += delta
+    }
+    const gait = THREE.MathUtils.clamp(actualSpeed / WALK, 0, 2)
+    motion.current.gait += (gait - motion.current.gait) * Math.min(1, delta * 12)
+
+    // footsteps
+    stepDist.current += moved
+    const stride = actualSpeed > WALK * 1.25 ? 0.78 : 0.62
+    if (stepDist.current > stride && actualSpeed > 0.4) {
+      stepDist.current = 0
+      audio.footstep(actualSpeed > WALK * 1.25)
+    }
+
+    // sitting down to use the terminal: she slides onto the chair and the rig
+    // folds into the desk pose, then steps clear of the chair when she stands
+    if (overlay === 'computer' && Math.hypot(pos.current.x - SEAT.x, pos.current.y - SEAT.z) < 2.6) {
+      seated.current = true
+    } else if (mag > 0.01 || overlay === 'pause') {
+      // she stays in the chair after closing the terminal until you walk her off
+      seated.current = false
+    }
+    const wantSit = seated.current
+    const wasSit = sit.current
+    sit.current += ((wantSit ? 1 : 0) - sit.current) * Math.min(1, delta * 5)
+    if (wantSit) {
+      const k = Math.min(1, delta * 5)
+      pos.current.x += (SEAT.x - pos.current.x) * k
+      pos.current.y += (SEAT.z - pos.current.y) * k
+      let diff = SEAT.yaw - bodyYaw.current
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      bodyYaw.current += diff * k
+      motion.current.gait = 0
+    } else if (wasSit > 0.25 && sit.current <= 0.25) {
+      pos.current.set(STAND.x, STAND.z)
+      vel.current.set(0, 0)
+    }
+    motion.current.sit = sit.current
+
+    if (root.current) {
+      // a rig sitting from a retargeted clip drops its own pelvis onto the pad,
+      // so only the posed rigs need the root pushed down under them
+      const drop = rig.sitClip ? 0 : rig.seatDrop
+      root.current.position.set(pos.current.x, -sit.current * drop, pos.current.y)
+      root.current.rotation.y = bodyYaw.current
+    }
+
+    // third person camera with wall-aware distance
+    // seated she is a third of a metre shorter and the chair back is between
+    // her and the room: aiming at standing head height put the lens under the
+    // seat pad and framed the empty air above her
+    const sitK = THREE.MathUtils.clamp(sit.current, 0, 1)
+    const pivot = new THREE.Vector3(pos.current.x, HEAD - sitK * rig.seatDrop, pos.current.y)
+    const dirY = Math.sin(camPitch.current)
+
+    /** How far the boom can run down a heading before it reaches solid mass. */
+    const clearance = (yaw: number): number => {
+      const sx = Math.sin(yaw)
+      const sz = Math.cos(yaw)
+      let clear = 0
+      for (let d = 0.35; d <= DIST + 1e-6; d += 0.15) {
+        if (cameraBlocked(pivot.x + sx * d, pivot.z + sz * d)) break
+        clear = d
+      }
+      return clear
+    }
+
+    // her heading first; if the wall behind her leaves no room for a shoulder
+    // boom, swing to the nearest heading that does rather than sink into it
+    let yaw = camYaw.current
+    let room = clearance(yaw)
+    if (room < 1.0) {
+      let bestYaw = yaw
+      let bestRoom = room
+      for (let i = 1; i <= 12; i++) {
+        const off = ((i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * Math.PI) / 6
+        const candidate = camYaw.current + off
+        const r = clearance(candidate)
+        if (r > bestRoom) {
+          bestYaw = candidate
+          bestRoom = r
+          if (r >= MIN_DIST) break
+        }
+      }
+      yaw = bestYaw
+      room = bestRoom
+    }
+    const dirX = Math.sin(yaw) * Math.cos(camPitch.current)
+    const dirZ = Math.cos(yaw) * Math.cos(camPitch.current)
+    // no heading has any air in it: ride above her and look down instead
+    const boxedIn = room <= 0
+    const dist = Math.min(DIST, Math.max(0.5, room - 0.14))
+    // the shorter the boom gets, the higher it rides and the lower it aims, so a
+    // wall behind her crops the frame instead of her
+    const pinch = 1 - THREE.MathUtils.clamp((dist - 0.6) / (DIST - 0.6), 0, 1)
+    const desired = boxedIn
+      ? new THREE.Vector3(pivot.x, pivot.y + 1.2, pivot.z)
+      : new THREE.Vector3(
+          pivot.x + dirX * dist,
+          Math.max(0.35, pivot.y + dirY * dist + 0.35 + pinch * 0.85),
+          pivot.z + dirZ * dist,
+        )
+    if (sitK > 0.05) {
+      // never let the boom drop below the seat pad while she is in the chair
+      desired.y = Math.max(desired.y, pivot.y + 0.3 + sitK * 0.25)
+    }
+    if (!camInit.current) {
+      camPos.current.copy(desired)
+      camInit.current = true
+    } else {
+      camPos.current.lerp(desired, Math.min(1, delta * 9))
+    }
+
+    // the rectangles above only know the floor plan; the built set has recesses,
+    // rails and awnings they do not, so the last word belongs to the geometry
+    // actually standing between the lens and her head
+    occluderAge.current -= delta
+    if (occluderAge.current <= 0) {
+      occluderAge.current = 0.4
+      const near: { mesh: THREE.Mesh; d: number }[] = []
+      const fade: THREE.Mesh[] = []
+      const box = new THREE.Box3()
+      const self = root.current
+      scene.traverse((o) => {
+        const mesh = o as THREE.Mesh
+        if (!mesh.isMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh || !mesh.visible) return
+        if (self && isDescendant(mesh, self)) return
+        // tagged first: a rail mid-fade is transparent, and dropping it here
+        // would strand it ghosted with nothing left to fade it back in
+        if (isFadeable(mesh)) {
+          fade.push(mesh)
+          return
+        }
+        const material = mesh.material
+        const seeThrough = Array.isArray(material)
+          ? material.some((m) => m.transparent)
+          : material.transparent
+        if (seeThrough) return
+        box.setFromObject(mesh)
+        if (box.isEmpty()) return
+        const d = box.distanceToPoint(pivot)
+        if (d > 6) return
+        // a decorated room has hundreds of leaves and trinkets within reach;
+        // only masses big enough to hide her are worth a ray
+        const size = box.getSize(TMP_SIZE)
+        if (Math.max(size.x, size.y, size.z) < 0.35) return
+        near.push({ mesh, d })
+      })
+      near.sort((a, b) => a.d - b.d)
+      occluders.current = near.slice(0, 120).map((n) => n.mesh)
+      fadeable.current = fade
+    }
+
+    const caster = raycaster.current
+    /** Highest the lens can ride straight up before an awning or ceiling. */
+    const headroom = (): number => {
+      caster.near = 0.05
+      caster.far = 2.2
+      caster.set(pivot, UP)
+      const ceiling = caster.intersectObjects(occluders.current, false)
+      return Math.max(0.5, Math.min(1.3, (ceiling.length > 0 ? ceiling[0].distance : 2.2) - 0.3))
+    }
+
+    const toLens = camPos.current.clone().sub(pivot)
+    const lensDist = toLens.length()
+    let overhead = boxedIn
+    if (boxedIn) {
+      camPos.current.y = Math.min(camPos.current.y, pivot.y + headroom())
+    } else if (lensDist > 0.01) {
+      toLens.divideScalar(lensDist)
+      caster.near = 0.05
+      caster.far = lensDist
+      // her head clears a balcony rail that her legs do not, so the boom is
+      // solved against her knees as well and keeps whichever is tighter
+      const reach = (from: THREE.Vector3): number => {
+        caster.set(from, toLens)
+        const hits = caster.intersectObjects(occluders.current, false)
+        return hits.length > 0 ? hits[0].distance - 0.16 : lensDist
+      }
+      const clear = reach(pivot)
+      if (clear < MIN_LENS && sitK > 0.5) {
+        // the desk corner is tight; sat down, back off along the boom instead
+        // of snapping to the near-top-down shot that hides her in the chair
+        camPos.current.copy(pivot).addScaledVector(toLens, Math.max(clear, 1.1))
+      } else if (clear < MIN_LENS) {
+        // nothing behind her but wall: ride over her shoulder looking down
+        // rather than clamp the boom through it
+        camPos.current.set(pivot.x, pivot.y + headroom(), pivot.z)
+        overhead = true
+      } else if (clear < lensDist) {
+        camPos.current.copy(pivot).addScaledVector(toLens, clear)
+      }
+    }
+
+    camera.position.copy(camPos.current)
+    // aiming at her head from below puts her feet off the bottom of the frame,
+    // so the lower the lens sits the further down the body it looks
+    const droop = Math.max(0, -camPitch.current) * 1.1
+    camera.lookAt(
+      pivot.x,
+      overhead ? 0.75 : pivot.y - 0.06 - pinch * 0.75 * (1 - sitK) - droop * (1 - sitK * 0.6),
+      pivot.z,
+    )
+
+    // balusters are too thin for the boom to solve around without shoving the
+    // lens into her back, so the ones in the way dissolve instead
+    if (fadeable.current.length > 0) {
+      const eye = camPos.current
+      const blocking = new Set<THREE.Object3D>()
+      // her whole silhouette, not just her head: a single cap can cross her
+      // thighs while both a head ray and a knee ray sail past it
+      SIDE.set(pivot.x - eye.x, 0, pivot.z - eye.z).cross(UP).normalize().multiplyScalar(0.21)
+      for (const h of [0.25, 0.65, 1.05, 1.45]) {
+        for (const side of [-1, 0, 1]) {
+          const ray = KNEES.set(
+            pivot.x + SIDE.x * side,
+            h,
+            pivot.z + SIDE.z * side,
+          ).sub(eye)
+          const span = ray.length()
+          if (span < 0.02) continue
+          caster.near = 0.02
+          caster.far = span
+          caster.set(eye, ray.divideScalar(span))
+          for (const hit of caster.intersectObjects(fadeable.current, false)) blocking.add(hit.object)
+        }
+      }
+      const k = Math.min(1, delta * 10)
+      for (const mesh of fadeable.current) {
+        const material = mesh.material as THREE.MeshStandardMaterial
+        const want = blocking.has(mesh) ? FADED : 1
+        if (Math.abs(material.opacity - want) < 0.01) continue
+        material.opacity += (want - material.opacity) * k
+        material.transparent = material.opacity < 0.99
+        material.depthWrite = !material.transparent
+        // a ghosted bar that still stripes her with its shadow is no ghost
+        mesh.castShadow = material.opacity > 0.7
+      }
+    }
+
+    if (import.meta.env.DEV) {
+      ;(window as unknown as { __cam?: unknown }).__cam = {
+        occluders: occluders.current.length,
+        fadeable: fadeable.current.length,
+        boxedIn,
+        overhead,
+        planRoom: room,
+        lensDist,
+        pivot: pivot.toArray(),
+      }
+      // names whatever is actually standing in front of her right now, tagged
+      // or not, so a crossing can be traced back to the geometry that built it
+      ;(window as unknown as { __whatBlocks?: unknown }).__whatBlocks = () => {
+        const eye = camPos.current
+        const found = new Map<string, { at: number[]; faded: boolean }>()
+        const self = root.current
+        SIDE.set(pivot.x - eye.x, 0, pivot.z - eye.z).cross(UP).normalize().multiplyScalar(0.21)
+        for (const h of [0.25, 0.65, 1.05, 1.45]) {
+          for (const side of [-1, 0, 1]) {
+            const ray = KNEES.set(pivot.x + SIDE.x * side, h, pivot.z + SIDE.z * side).sub(eye)
+            const span = ray.length()
+            if (span < 0.02) continue
+            caster.near = 0.02
+            caster.far = span
+            caster.set(eye, ray.divideScalar(span))
+            for (const hit of caster.intersectObject(scene, true)) {
+              const mesh = hit.object as THREE.Mesh
+              if (!mesh.isMesh || (self && isDescendant(mesh, self))) continue
+              found.set(`${mesh.id}`, {
+                at: mesh.getWorldPosition(new THREE.Vector3()).toArray().map((v) => Math.round(v * 100) / 100),
+                faded: isFadeable(mesh),
+              })
+            }
+          }
+        }
+        return Object.fromEntries(found)
+      }
+    }
+
+    // nearest interactable
+    let best: string | null = null
+    let bestScore = Infinity
+    for (const it of INTERACTABLES) {
+      const d = Math.hypot(it.at[0] - pos.current.x, it.at[2] - pos.current.y)
+      if (d > it.radius) continue
+      // prefer what she is facing
+      const ang = Math.atan2(it.at[0] - pos.current.x, it.at[2] - pos.current.y) + Math.PI
+      let diff = Math.abs(((ang - bodyYaw.current + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
+      diff = Math.min(diff, Math.PI)
+      const score = d + diff * 0.55
+      if (score < bestScore) {
+        bestScore = score
+        best = it.id
+      }
+    }
+    if (best !== focusRef.current) {
+      focusRef.current = best
+      onFocus(best)
+    }
+
+    saveTimer.current += delta
+    if (saveTimer.current > 1.2) {
+      saveTimer.current = 0
+      useGame.getState().savePosition([pos.current.x, pos.current.y], bodyYaw.current)
+    }
+  })
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const st = useGame.getState()
+      st.savePosition([pos.current.x, pos.current.y], bodyYaw.current)
+    }, 2000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  return (
+    <group ref={root}>
+      <group scale={HERO_SCALE * rig.heightScale}>
+        <HeroBody look={look} motion={motion} reducedMotion={settings.reducedMotion} />
+      </group>
+      <pointLight position={[0, 1.4, 0.35]} color="#ffd9b0" intensity={0.35} distance={2.6} decay={2} />
+    </group>
+  )
+}
+
+export function usePointerLockHint(): boolean {
+  return isPointerLocked()
+}
