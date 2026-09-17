@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useProgress } from '@react-three/drei'
-import { Scene, LookPreview } from '../game/Scene'
+import { Scene } from '../game/Scene'
 import { Terminal } from './Terminal'
+import { CharacterSelect } from './CharacterSelect'
 import { useGame, persist, type Notif, type Settings } from '../state/store'
 import { useUi } from '../state/ui'
-import { LOOKS, getLook } from '../content/presets'
 import { getInspectable } from '../content/inspectables'
 import { BAKERY } from '../content/bakery'
 import { BEATS } from '../content/friends'
@@ -75,7 +75,7 @@ export function App() {
   }, [stage])
 
   if (phase === 'title') return <Title />
-  if (phase === 'select') return <LookSelect />
+  if (phase === 'select') return <CharacterSelect />
   return <Playing glitch={glitch} reducedMotion={settings.reducedMotion} overlay={overlay} />
 }
 
@@ -438,73 +438,6 @@ function Title() {
           <br />
           Sound starts when you press a button. Headphones are nice.
         </p>
-      </div>
-    </div>
-  )
-}
-
-// ------------------------------------------------------------ look selector
-
-function LookSelect() {
-  const look = useGame((s) => s.look)
-  const setLook = useGame((s) => s.setLook)
-  const startNew = useGame((s) => s.startNew)
-  const preset = getLook(look)
-
-  return (
-    <div className="screen">
-      <div className="select">
-        <div className="preview">
-          <LookPreview lookId={look} />
-        </div>
-        <div>
-          <h2>Choose tonight&rsquo;s look</h2>
-          <p className="name">{preset.name}</p>
-          <p className="tagline">{preset.tagline}</p>
-          <div className="looks">
-            {LOOKS.map((l) => (
-              <button
-                key={l.id}
-                className={`look-row ${l.id === look ? 'on' : ''}`}
-                onClick={() => {
-                  setLook(l.id)
-                  audio.uiTick()
-                }}
-              >
-                <span className="swatches">
-                  <span className="swatch" style={{ background: l.hairColor }} />
-                  <span className="swatch" style={{ background: l.outfit }} />
-                  <span className="swatch" style={{ background: l.outfitAccent }} />
-                  <span className="swatch" style={{ background: l.nails }} />
-                </span>
-                <span className="meta">
-                  <b>{l.name}</b>
-                  <span>
-                    {l.hair} · {l.earrings} · {l.glasses ? 'glasses' : 'no glasses'}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="btn primary"
-              onClick={() => {
-                audio.uiTick()
-                startNew()
-              }}
-            >
-              Step inside
-            </button>
-            <button className="btn ghost" onClick={() => useGame.getState().setPhase('title')}>
-              Back
-            </button>
-          </div>
-          <p style={{ color: '#8b7f96', fontSize: 12, marginTop: 18, lineHeight: 1.6 }}>
-            All three share one rig — hair, jewellery, nails, glasses and outfit change with the preset, and your
-            choice is saved with the run.
-          </p>
-        </div>
       </div>
     </div>
   )
