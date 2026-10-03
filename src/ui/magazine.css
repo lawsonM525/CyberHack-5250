@@ -1,7 +1,12 @@
+@import '@fontsource/dela-gothic-one/latin-400.css';
+@import '@fontsource/zen-maru-gothic/latin-500.css';
+@import '@fontsource/zen-maru-gothic/latin-700.css';
+@import '@fontsource/klee-one/latin-600.css';
+
 /* Japanese-magazine layer: cream paper, sumi ink, vermilion and pink spot
-   colour, halftone and hairline rules. Applies to the character select and the
-   paper overlays (clue tag, bakery, finale, pause); the CRT terminal, inbox and
-   HUD keep their green phosphor. */
+   colour, halftone and hairline rules. Fonts are bundled so every machine sees
+   the same faces. Applies to the character select and the paper overlays (clue
+   tag, bakery, finale, pause); the CRT terminal, inbox and HUD stay green. */
 
 :root {
   --mag-paper: #fbf5ea;
@@ -12,8 +17,7 @@
   --mag-pink: #ff5fa2;
   --mag-yellow: #ffd23f;
   --mag-teal: #19b8a6;
-  --mag-display: 'Hiragino Kaku Gothic StdN', 'Hiragino Sans', 'Noto Sans JP', 'Noto Sans CJK JP', 'Yu Gothic', 'Avenir Next Condensed',
-    'Arial Narrow', system-ui, sans-serif;
+  --mag-display: 'Dela Gothic One', 'Arial Black', system-ui, sans-serif;
   --mag-halftone: radial-gradient(circle at 1px 1px, rgba(23, 19, 28, 0.11) 1px, transparent 1.4px) 0 0 / 6px 6px;
 }
 
@@ -54,17 +58,17 @@
 }
 
 .overlay .panel.inspect::before {
-  content: '植物図鑑 · PLANT FILE';
+  content: 'PLANT FILE — VOL. 01';
 }
 .overlay .panel.bakery::before {
-  content: '深夜のパン屋 · NIGHT BAKERY';
+  content: 'NIGHT BAKERY — OPEN LATE';
 }
 .overlay .panel.finale::before {
-  content: '到着 · ARRIVAL ISSUE';
+  content: 'ARRIVAL ISSUE — KINGSLEY ROW';
   background: var(--mag-pink);
 }
 .overlay .panel.pause::before {
-  content: '設定 · SETTINGS';
+  content: 'SETTINGS — HOUSE RULES';
   background: var(--mag-teal);
 }
 
@@ -326,7 +330,7 @@
 }
 
 .cselect .cselect-head::before {
-  content: 'CYBERHACK 5250 · 夜の号';
+  content: 'CYBERHACK 5250 — NIGHT ISSUE';
   display: block;
   margin-bottom: 14px;
   padding-bottom: 8px;
@@ -467,4 +471,190 @@
 
 .overlay .panel:is(.inspect, .bakery) .foot .btn {
   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- typefaces */
+
+:root {
+  --mag-body: 'Zen Maru Gothic', 'Avenir Next', system-ui, sans-serif;
+  --mag-hand: 'Klee One', 'Bradley Hand', 'Segoe Print', cursive;
+}
+
+.overlay .panel:is(.inspect, .bakery, .finale, .pause),
+.cselect :is(.cselect-head, .cselect-foot, .outfit-card) {
+  font-family: var(--mag-body);
+}
+
+.overlay .panel:is(.inspect, .bakery, .finale, .pause) :is(h2, h3, .btn, .kicker),
+.overlay .panel:is(.inspect, .bakery, .finale, .pause)::before,
+.overlay .panel.bakery .loaf-meta b,
+.cselect .cselect-head :is(h2, .kicker),
+.cselect .cselect-head::before,
+.cselect .outfit-card .plate b,
+.cselect .plate-btn {
+  font-family: var(--mag-display);
+  font-weight: 400;
+}
+
+.overlay .panel:is(.inspect, .bakery, .finale, .pause)::before {
+  font-size: 13px;
+  letter-spacing: 0.22em;
+}
+
+.overlay .panel:is(.inspect, .bakery, .finale, .pause) :is(p, .sub, .foot span, .setting label) {
+  font-family: var(--mag-body);
+  font-weight: 500;
+}
+
+.overlay .panel.inspect h3,
+.overlay .panel.bakery h3 {
+  font-size: 34px;
+  letter-spacing: -0.01em;
+}
+
+.overlay .panel.finale h2 {
+  font-size: 52px;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+}
+
+.overlay .panel.pause h3 {
+  font-size: 30px;
+  letter-spacing: 0.06em;
+}
+
+.cselect .cselect-head h2 {
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------ personality */
+
+/* clue tag: Orchid's handwriting on a taped scrap */
+.overlay .panel.inspect .tag {
+  font-family: var(--mag-hand);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.45;
+  padding: 22px 22px 16px;
+  color: #2a1f3a;
+  background:
+    repeating-linear-gradient(transparent 0 31px, rgba(25, 184, 166, 0.28) 31px 32px) 0 14px,
+    #fffdf7;
+  transform: rotate(-1.6deg);
+}
+
+.overlay .panel.inspect .tag::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 92px;
+  height: 22px;
+  transform: translateX(-50%) rotate(3deg);
+  background: rgba(255, 95, 162, 0.55);
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.25) 0 4px, transparent 4px 8px);
+}
+
+.overlay .panel.inspect .tag {
+  position: relative;
+}
+
+.overlay .panel.inspect .tag > div:first-child {
+  font-size: 26px;
+  color: var(--mag-red);
+}
+
+/* round rubber stamps on the headlines */
+.overlay .panel:is(.inspect, .bakery) h3 {
+  position: relative;
+  padding-right: 84px;
+}
+
+.overlay .panel:is(.inspect, .bakery) h3::after {
+  position: absolute;
+  right: 0;
+  top: -6px;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  font-family: var(--mag-display);
+  font-size: 12px;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: pre;
+  transform: rotate(12deg);
+}
+
+.overlay .panel.inspect h3::after {
+  content: 'CLUE\A FOUND';
+  color: var(--mag-red);
+  border: 2.5px solid var(--mag-red);
+  box-shadow: inset 0 0 0 3px var(--mag-paper), inset 0 0 0 4.5px var(--mag-red);
+}
+
+.overlay .panel.bakery h3::after {
+  content: 'FRESH\A OUT THE\A OVEN';
+  color: var(--mag-ink);
+  background: var(--mag-yellow);
+  border: 2px solid var(--mag-ink);
+  font-size: 10px;
+}
+
+.overlay .panel.bakery .loaf-meta span {
+  font-family: var(--mag-hand);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.overlay .panel.bakery .loaf-swatch {
+  width: 34px;
+  height: 34px;
+  background-image: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), transparent 45%) !important;
+}
+
+/* finale cover: sticker kicker and a handwritten sign-off */
+.overlay .panel.finale .kicker {
+  padding: 6px 14px;
+  font-size: 12px;
+  background: var(--mag-pink);
+  color: #fff;
+  border: 2px solid var(--mag-ink);
+  box-shadow: 3px 3px 0 var(--mag-ink);
+  transform: rotate(-3deg);
+}
+
+.overlay .panel.finale .tease {
+  font-family: var(--mag-hand);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #2a1f3a;
+}
+
+.overlay .panel.finale h2 {
+  text-shadow: 3px 3px 0 var(--mag-yellow);
+}
+
+.cselect .cselect-head .tagline {
+  font-family: var(--mag-hand);
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.overlay .panel.finale p.tease {
+  font-family: var(--mag-hand);
+  font-weight: 600;
+}
+
+.cselect .cselect-head::before {
+  white-space: nowrap;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.cselect .cselect-head h2 {
+  font-size: clamp(48px, 6vw, 88px);
 }
