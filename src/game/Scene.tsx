@@ -58,7 +58,7 @@ function Rig({ quality }: { quality: 'low' | 'medium' | 'high' }) {
 
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping
-    gl.toneMappingExposure = 1.14
+    gl.toneMappingExposure = 1.62
     gl.shadowMap.enabled = quality !== 'low'
     gl.shadowMap.type = THREE.PCFShadowMap
     scene.fog = new THREE.FogExp2(new THREE.Color('#0a0e1c'), 0.0075)
@@ -75,8 +75,8 @@ function Lights({ quality }: { quality: 'low' | 'medium' | 'high' }) {
   return (
     <group>
       {/* warm lamplight bounce, not the cold blue wash the room used to sit in */}
-      <ambientLight color="#8d8294" intensity={1.75} />
-      <hemisphereLight color="#c3b0d8" groundColor="#5c4038" intensity={1.45} />
+      <ambientLight color="#c4bccf" intensity={2.7} />
+      <hemisphereLight color="#f0e6ff" groundColor="#9a7c74" intensity={2.3} />
       {/* city spill through the window */}
       <directionalLight color="#9fc4ff" intensity={1.15} position={[-2.5, 4.5, -12]} />
       <directionalLight color="#ffd3a8" intensity={0.7} position={[4, 3, 6]} />
@@ -197,7 +197,7 @@ function Grade({ quality }: { quality: 'low' | 'medium' | 'high' }) {
   return (
     <EffectComposer enableNormalPass={false} multisampling={0}>
       <Bloom intensity={0.75} luminanceThreshold={0.62} luminanceSmoothing={0.28} mipmapBlur radius={0.72} />
-      <Vignette offset={0.22} darkness={0.72} eskil={false} />
+      <Vignette offset={0.4} darkness={0.3} eskil={false} />
       {quality === 'high' ? <SMAA /> : <></>}
     </EffectComposer>
   )

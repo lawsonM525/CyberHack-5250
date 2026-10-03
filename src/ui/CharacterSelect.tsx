@@ -3,6 +3,7 @@ import { useGame } from '../state/store'
 import { LOOKS, getLook, type LookId } from '../content/presets'
 import { audio } from '../audio/audio'
 import './select.css'
+import './magazine.css'
 
 const CARD: Record<LookId, { art: string; blurb: string }> = {
   orchid: { art: 'card-orchid.webp', blurb: 'locs & beads' },

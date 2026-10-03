@@ -19,7 +19,7 @@ export function LookStage({ lookId, reducedMotion = false }: { lookId: LookId; r
       style={{ width: '100%', height: '100%' }}
     >
       <StageCamera />
-      <ambientLight color="#6c5f7e" intensity={0.7} />
+      <ambientLight color="#c9bcd6" intensity={1.5} />
       {/* warm key from the vanity bulbs, camera left */}
       <spotLight
         color="#ffd6a6"
