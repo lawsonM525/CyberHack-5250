@@ -5,13 +5,12 @@ import { Terminal } from './Terminal'
 import { CharacterSelect } from './CharacterSelect'
 import { useGame, persist, type Notif, type Settings } from '../state/store'
 import { useUi } from '../state/ui'
-import { getInspectable } from '../content/inspectables'
-import { BAKERY } from '../content/bakery'
 import { BEATS } from '../content/friends'
 import { INTERACTABLES } from '../game/world'
 import { installInput, setInputEnabled } from '../game/input'
 import { audio, TRACKS } from '../audio/audio'
 import './styles.css'
+import { BakeryOverlay, Finale, InspectOverlay } from './Popups'
 
 export function App() {
   const phase = useGame((s) => s.phase)
@@ -259,6 +258,7 @@ function NotifStack() {
               <div
                 key={n.id}
                 className={`logrow ${n.kind} ${hover || pinned ? 'held' : ''}`}
+                data-from={n.title}
                 style={{ '--accent': n.accent, '--life': `${LOG_LINGER}ms` } as React.CSSProperties}
               >
               <button className="logrow-x" title="dismiss" onClick={() => dismiss(n.id)}>
@@ -304,53 +304,6 @@ function Wallet() {
       <span className="coin">¢</span>
       {credits}
       {pantry.length > 0 && <span className="pantry" title={`${pantry.length} from the bakery`}>🥖 {pantry.length}</span>}
-    </div>
-  )
-}
-
-function BakeryOverlay() {
-  const credits = useGame((s) => s.credits)
-  const pantry = useGame((s) => s.pantry)
-  const buyBread = useGame((s) => s.buyBread)
-  const closeOverlay = useGame((s) => s.closeOverlay)
-  return (
-    <div className="overlay" onClick={closeOverlay}>
-      <div className="panel bakery" onClick={(e) => e.stopPropagation()}>
-        <div className="kicker">Sugarloaf · night hatch · 12F</div>
-        <h3>Still baking at this hour</h3>
-        <p className="sub">
-          Tap the hatch, it comes up warm. Balance <b>¢{credits}</b>.
-        </p>
-        <div className="shelf">
-          {BAKERY.map((b) => {
-            const bought = pantry.filter((p) => p === b.id).length
-            const afford = credits >= b.price
-            return (
-              <div key={b.id} className="loaf-row">
-                <span className="loaf-swatch" style={{ background: b.color }} />
-                <span className="loaf-meta">
-                  <b>{b.name}</b>
-                  <span>{b.blurb}</span>
-                </span>
-                <button
-                  className={`btn ${afford ? 'primary' : 'ghost'} small`}
-                  disabled={!afford}
-                  onClick={() => buyBread(b.id)}
-                >
-                  ¢{b.price}
-                </button>
-                {bought > 0 && <span className="owned">×{bought}</span>}
-              </div>
-            )
-          })}
-        </div>
-        <div className="foot">
-          <span>fictional credits · no real money anywhere in this game</span>
-          <button className="btn ghost small" onClick={closeOverlay}>
-            Esc — back
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
@@ -605,40 +558,6 @@ function HandsetOverlay() {
   )
 }
 
-function InspectOverlay() {
-  const id = useGame((s) => s.inspectingId)
-  const closeOverlay = useGame((s) => s.closeOverlay)
-  const entry = id ? getInspectable(id) : undefined
-  if (!entry) return null
-  return (
-    <div className="overlay" onClick={closeOverlay}>
-      <div className="panel inspect" onClick={(e) => e.stopPropagation()}>
-        <h3>{entry.title}</h3>
-        {entry.subtitle && <p className="sub">{entry.subtitle}</p>}
-        {entry.clue ? (
-          <div className="tag">
-            {entry.body.map((b, i) => (
-              <div key={i}>{b}</div>
-            ))}
-          </div>
-        ) : (
-          <div className="body">
-            {entry.body.map((b, i) => (
-              <p key={i}>{b}</p>
-            ))}
-          </div>
-        )}
-        <div className="foot">
-          <span>{entry.clue ? 'noted in your terminal' : 'noticed'}</span>
-          <button className="btn ghost small" onClick={closeOverlay}>
-            Esc — back
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function Row({
   label,
   children,
@@ -770,31 +689,6 @@ function PauseMenu() {
             }}
           >
             Reset progress
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Finale() {
-  const closeOverlay = useGame((s) => s.closeOverlay)
-  return (
-    <div className="overlay">
-      <div className="panel finale">
-        <div className="kicker">Kingsley Row · 12F</div>
-        <h2>You made it across</h2>
-        <p>
-          The span holds. From up here the whole grid opens out — towers stacked into the haze, the noodle sign
-          blinking two streets over, somebody&rsquo;s roof garden breathing in the dark.
-        </p>
-        <p className="tease">
-          Under the awning there is a crate with a name stencilled on it. It is not Orchid&rsquo;s name. She says
-          you&rsquo;ll talk about the Marigold job tomorrow night.
-        </p>
-        <div className="stack" style={{ marginTop: 22 }}>
-          <button className="btn primary" onClick={closeOverlay}>
-            Stay out here a while
           </button>
         </div>
       </div>

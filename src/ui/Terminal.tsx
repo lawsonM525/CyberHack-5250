@@ -365,6 +365,7 @@ function Chats() {
         return (
           <div key={friend.id} className="thread" style={{ borderColor: friend.color }}>
             <div className="thread-head">
+              <img className="thread-av" src={`/art/ui/av-${friend.id}.webp`} alt="" />
               <span className="who" style={{ color: friend.color }}>
                 {friend.name}
               </span>
