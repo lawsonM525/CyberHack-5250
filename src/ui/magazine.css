@@ -1,0 +1,19 @@
+@import '@fontsource/dela-gothic-one/latin-400.css';
+@import '@fontsource/zen-maru-gothic/latin-500.css';
+@import '@fontsource/zen-maru-gothic/latin-700.css';
+@import '@fontsource/klee-one/latin-600.css';
+
+/* Bundled display/body/hand fonts and the magazine palette shared by the
+   popups and character select. */
+:root {
+  --mag-paper: #fbf5ea;
+  --mag-paper-2: #f3e9d8;
+  --mag-ink: #17131c;
+  --mag-ink-2: #4a4150;
+  --mag-red: #e8392e;
+  --mag-pink: #ff5fa2;
+  --mag-yellow: #ffd23f;
+  --mag-teal: #19b8a6;
+  --mag-display: 'Dela Gothic One', 'Arial Black', system-ui, sans-serif;
+  --mag-halftone: radial-gradient(circle at 1px 1px, rgba(23, 19, 28, 0.11) 1px, transparent 1.4px) 0 0 / 6px 6px;
+}
