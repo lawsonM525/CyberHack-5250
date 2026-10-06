@@ -5,9 +5,14 @@ import { HeroBody } from './Heroine'
 import { getLook, rigFor, type LookId } from '../content/presets'
 import type { MotionState } from './Character'
 
+const EYE = new THREE.Vector3(0.3, 0.9, 4.1)
+const AIM = new THREE.Vector3(0, 0.9, 0)
+
 /**
  * Cinematic character-select stage: she stands full height on a transparent
- * canvas so the painted dressing-room plate shows through behind her.
+ * canvas so the painted dressing-room plate shows through behind her. The lens
+ * frames her feet on the canvas's bottom edge so the layout can set them down
+ * on the plate's platform.
  */
 export function LookStage({ lookId, reducedMotion = false }: { lookId: LookId; reducedMotion?: boolean }) {
   const look = useMemo(() => getLook(lookId), [lookId])
@@ -15,7 +20,7 @@ export function LookStage({ lookId, reducedMotion = false }: { lookId: LookId; r
     <Canvas
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true }}
-      camera={{ fov: 26, position: [0.5, 0.98, 4.35] }}
+      camera={{ fov: 26, position: EYE.toArray() }}
       style={{ width: '100%', height: '100%' }}
     >
       <StageCamera />
@@ -36,11 +41,6 @@ export function LookStage({ lookId, reducedMotion = false }: { lookId: LookId; r
       <Suspense fallback={null}>
         <Poser look={look} reducedMotion={reducedMotion} />
       </Suspense>
-      {/* brass glow on the platform she stands on, matched to the plate */}
-      <mesh position={[0, 0.004, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.52, 0.78, 64]} />
-        <meshBasicMaterial color="#f0b463" transparent opacity={0.5} toneMapped={false} />
-      </mesh>
     </Canvas>
   )
 }
@@ -48,19 +48,19 @@ export function LookStage({ lookId, reducedMotion = false }: { lookId: LookId; r
 function StageCamera() {
   const { camera } = useThree()
   useEffect(() => {
-    camera.position.set(0.5, 0.98, 4.35)
-    camera.lookAt(0, 0.92, 0)
+    camera.position.copy(EYE)
+    camera.lookAt(AIM)
   }, [camera])
   return null
 }
 
 function Poser({ look, reducedMotion }: { look: ReturnType<typeof getLook>; reducedMotion: boolean }) {
   const g = useRef<THREE.Group>(null)
-  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 99, sit: 0 })
+  const motion = useRef<MotionState>({ gait: 0, turning: 0, still: 99, sit: 0, speed: 0 })
   useFrame(({ clock }) => {
     if (!g.current) return
-    const t = reducedMotion ? 0 : Math.sin(clock.elapsedTime * 0.3) * 0.42
-    g.current.rotation.y = Math.PI + 0.22 + t
+    const t = reducedMotion ? 0 : Math.sin(clock.elapsedTime * 0.3) * 0.36
+    g.current.rotation.y = Math.PI + 0.18 + t
   })
   return (
     <group ref={g} scale={1.68 * rigFor(look).heightScale}>

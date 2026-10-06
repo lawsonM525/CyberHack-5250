@@ -187,6 +187,7 @@ export function Player({
     }
     const gait = THREE.MathUtils.clamp(actualSpeed / WALK, 0, 2)
     motion.current.gait += (gait - motion.current.gait) * Math.min(1, delta * 12)
+    motion.current.speed = actualSpeed
 
     // footsteps
     stepDist.current += moved

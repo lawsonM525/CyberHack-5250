@@ -11,6 +11,8 @@ export interface MotionState {
   still: number
   /** 0 standing, 1 seated at the desk. */
   sit: number
+  /** Actual ground speed in m/s, so the gait clips can plant their feet. */
+  speed?: number
 }
 
 interface Props {

@@ -7,6 +7,8 @@ import { Character, type MotionState } from './Character'
 import { rigFor, type LookPreset, type RigProfile } from '../content/presets'
 
 const ANIMS = ['idle', 'walk', 'run'] as const
+/** Ground speed the retargeted loops cover at the 1.68 m presentation, m/s (measured from foot travel during stance). */
+const CLIP_SPEED = { walk: 1.6, run: 3.5 }
 type AnimName = (typeof ANIMS)[number]
 
 /**
@@ -125,20 +127,22 @@ export function Heroine({
     for (const a of Object.values(map)) {
       if (!a) continue
       a.setLoop(THREE.LoopRepeat, Infinity)
-      a.enabled = true
       a.setEffectiveWeight(0)
-      a.play()
     }
     map.idle?.setEffectiveWeight(1)
     return map
   }, [mixer, idle.animations, walk.animations, run.animations])
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    for (const a of Object.values(actions)) {
+      if (!a) continue
+      a.enabled = true
+      a.play()
+    }
+    return () => {
       mixer.stopAllAction()
-    },
-    [mixer],
-  )
+    }
+  }, [mixer, actions])
 
   const weights = useRef({ idle: 1, walk: 0, run: 0 })
   const sitWeight = useRef(0)
@@ -200,8 +204,11 @@ export function Heroine({
       actions[name]?.setEffectiveWeight(weights.current[name] * gaitGain)
     }
     sitWeight.current = sit
-    // running reads better slightly quicker than the retargeted clip's own tempo
-    if (actions.run) actions.run.timeScale = 1.15
+    // the clips are in-place loops, so their feet only plant if they play at
+    // the ground speed the controller is actually moving her at
+    const speed = motion.current?.speed ?? 0
+    if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.walk, 0.7, 1.7)
+    if (actions.run) actions.run.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.run, 0.7, 1.7)
     mixer.update(reducedMotion ? delta * 0.6 : delta)
 
     if (rig.sitClip) return

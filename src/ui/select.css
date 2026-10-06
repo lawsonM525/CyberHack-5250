@@ -1,216 +1,528 @@
-/* Character select: painted dressing room, brass plates, burgundy velvet.
-   Scoped to .cselect so it cannot touch the rest of the interface. */
+/* Character select: a hero-select screen in the Valorant / Cyberpunk 2077
+   mould — one big lit runner on the dressing-room plate, a dense dossier,
+   a compact roster strip and a single loud lock-in — all on painted plates. */
 
-.cselect {
+.csel {
   position: relative;
   overflow: hidden;
   display: block;
+  color: #fff6ea;
+  --acc: #4fd0c0;
+  --acc2: #ff5fa2;
   --brass: #e5b164;
-  --burgundy: #4a1224;
   --ink: #120a14;
+  --sel-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sel-display: var(--mag-display, 'Dela Gothic One', 'Arial Black', sans-serif);
+  --sel-body: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', system-ui, sans-serif;
+  --dw: clamp(250px, 22vw, 340px);
 }
 
-.cselect-room,
-.cselect-veil,
-.cselect-stage {
+.csel-room,
+.csel-grade,
+.csel-dust,
+.csel-stage {
   position: absolute;
   inset: 0;
 }
 
-.cselect-room {
+.csel-room {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 40%;
+  object-position: center 42%;
+  filter: brightness(1.08) saturate(1.1);
 }
 
-/* keeps text legible over the plate without blurring the art */
-.cselect-veil {
+/* colour grade keyed to the runner, plus a cinematic edge falloff */
+.csel-grade {
   background:
-    radial-gradient(120% 80% at 50% 78%, rgba(18, 10, 20, 0) 30%, rgba(18, 10, 20, 0.72) 100%),
-    linear-gradient(180deg, rgba(18, 10, 20, 0.7) 0%, rgba(18, 10, 20, 0) 28%),
-    linear-gradient(0deg, rgba(18, 10, 20, 0.85) 0%, rgba(18, 10, 20, 0) 42%);
+    radial-gradient(38% 60% at 46% 52%, color-mix(in srgb, var(--acc) 34%, transparent) 0%, transparent 100%),
+    radial-gradient(120% 90% at 50% 60%, rgba(18, 10, 20, 0) 45%, rgba(18, 10, 20, 0.78) 100%),
+    linear-gradient(180deg, rgba(18, 10, 20, 0.62) 0%, rgba(18, 10, 20, 0) 26%),
+    linear-gradient(0deg, rgba(18, 10, 20, 0.9) 0%, rgba(18, 10, 20, 0.45) 18%, rgba(18, 10, 20, 0) 40%);
+  transition: background 400ms ease;
 }
 
-.cselect-stage {
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(52vw, 620px);
-  bottom: 4%;
-  top: 6%;
+.csel-emblem-bg {
+  position: absolute;
+  left: 46%;
+  top: 44%;
+  width: min(62vh, 36vw);
+  transform: translate(-50%, -50%);
+  opacity: 0.16;
+  mix-blend-mode: screen;
+  filter: blur(0.6px) saturate(1.2);
+  animation: csel-em-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   pointer-events: none;
 }
 
-.cselect-head {
-  position: absolute;
-  top: 5vh;
-  left: 4vw;
-  max-width: 24vw;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.8);
+.csel-dust {
+  left: 18%;
+  right: 22%;
+  top: 4%;
+  bottom: 18%;
+  width: auto;
+  height: auto;
+  object-fit: cover;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: csel-drift 26s ease-in-out infinite alternate;
+  pointer-events: none;
 }
 
-.cselect-head .kicker {
-  margin: 0 0 10px;
-  font-size: 11px;
-  letter-spacing: 0.34em;
+.csel.still .csel-dust,
+.csel.still .csel-emblem-bg,
+.csel.still .csel-head,
+.csel.still .csel-dossier {
+  animation: none;
+}
+
+/* the lens puts her feet on the canvas's bottom edge; this sets that edge on
+   the plate's platform */
+.csel-stage {
+  left: 22vw;
+  width: 52vw;
+  top: 1.5vh;
+  bottom: 24vh;
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 24px rgba(10, 4, 12, 0.55));
+}
+
+/* ------------------------------------------------------------ name block */
+
+.csel-head {
+  position: absolute;
+  top: 5.5vh;
+  left: 4vw;
+  width: 40vw;
+  z-index: 0;
+  animation: csel-slide 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.csel-kicker {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 1.2vh;
+  font: 500 clamp(10px, 0.8vw, 13px) / 1 var(--sel-mono);
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--brass);
 }
 
-.cselect-head h2 {
+.csel-kicker .dim {
+  color: rgba(229, 177, 100, 0.45);
+}
+
+.csel-name {
   margin: 0;
-  font-size: clamp(34px, 4vw, 58px);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  color: #fdf3e6;
+  font: 400 clamp(72px, 9.4vw, 150px) / 0.86 var(--sel-display);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #fff6ea;
+  transform: skewX(-7deg);
+  transform-origin: left bottom;
+  text-shadow:
+    0.045em 0.045em 0 var(--acc),
+    0.09em 0.09em 0 rgba(18, 10, 20, 0.9);
+  -webkit-text-stroke: 1px rgba(18, 10, 20, 0.5);
 }
 
-.cselect-head .tagline {
-  margin: 10px 0 0;
-  font-size: 15px;
-  line-height: 1.6;
-  font-style: italic;
-  color: #e8cdb5;
+.csel-tag {
+  margin: 2.2vh 0 0;
+  max-width: 30vw;
+  font: 500 clamp(14px, 1.15vw, 19px) / 1.45 var(--sel-body);
+  color: #f6e9dd;
+  text-shadow: 0 2px 8px rgba(18, 10, 20, 0.9);
 }
 
-/* ------------------------------------------------------------- outfit rack */
+.csel-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2vh 0 0;
+  padding: 0;
+  list-style: none;
+}
 
-.cselect-rack {
+.csel-chip {
+  display: inline-grid;
+  place-items: center;
+  min-width: 9.2vw;
+  height: clamp(26px, 2.3vw, 34px);
+  padding: 0 1.4em 0 2em;
+  background: url('/art/select/sel-chip.webp') center / 100% 100% no-repeat;
+  font: 500 clamp(10px, 0.78vw, 12px) / 1 var(--sel-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--acc);
+  white-space: nowrap;
+  filter: drop-shadow(0 4px 6px rgba(10, 4, 12, 0.6));
+}
+
+/* --------------------------------------------------------------- dossier */
+
+.csel-dossier {
   position: absolute;
   right: 3vw;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 6vh;
+  width: var(--dw);
+  aspect-ratio: 880 / 1168;
+  /* percentages would resolve against the screen, not the plate */
+  padding: calc(var(--dw) * 0.075) calc(var(--dw) * 0.11) calc(var(--dw) * 0.1) calc(var(--dw) * 0.125);
+  box-sizing: border-box;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  background: url('/art/select/sel-plate.webp') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 16px 26px rgba(10, 4, 12, 0.6));
+  animation: csel-slide-r 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.csel-doss-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6%;
+  border-bottom: 1px solid rgba(229, 177, 100, 0.35);
+}
+
+.csel-doss-top img {
+  width: 21%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--acc) 60%, transparent));
+}
+
+.csel-doss-top div {
   display: grid;
-  gap: 16px;
+  gap: 4px;
 }
 
-.outfit-card {
+.csel-doss-k {
+  font: 500 clamp(9px, 0.7vw, 11px) / 1 var(--sel-mono);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.csel-doss-top b {
+  font: 400 clamp(16px, 1.45vw, 24px) / 1 var(--sel-display);
+  color: #fff6ea;
+}
+
+.csel-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 5px;
+  margin: 6% 0 0;
+  font: 500 clamp(10px, 0.82vw, 13px) / 1.35 var(--sel-mono);
+}
+
+.csel-rows dt {
+  color: var(--brass);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.csel-rows dt::before {
+  content: '▸ ';
+  color: var(--acc);
+}
+
+.csel-rows dd {
+  margin: 0;
+  color: #f1e6da;
+}
+
+.csel-stats {
+  display: grid;
+  gap: 7px;
+  margin: auto 0 0;
+  padding-top: 6%;
+  border-top: 1px solid rgba(229, 177, 100, 0.35);
+}
+
+.csel-stat {
+  display: grid;
+  grid-template-columns: 5.6em 1fr 2.2em;
+  align-items: center;
+  gap: 8px;
+  font: 500 clamp(9px, 0.72vw, 11.5px) / 1 var(--sel-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d9ccc0;
+}
+
+.csel-stat i {
   position: relative;
-  width: clamp(130px, 13vw, 186px);
-  aspect-ratio: 3 / 4;
-  padding: 0;
-  border: 2px solid rgba(229, 177, 100, 0.28);
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--ink);
-  cursor: pointer;
-  filter: saturate(0.72) brightness(0.68);
-  transition: filter 180ms ease, border-color 180ms ease, transform 180ms ease;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  height: 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(229, 177, 100, 0.28) 0 2px, transparent 2px 5px),
+    rgba(255, 246, 234, 0.06);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
 }
 
-.outfit-card img {
-  width: 100%;
-  height: 100%;
+.csel-stat b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--acc) 0%, var(--acc2) 100%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--acc) 70%, transparent);
+  transition: width 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.csel-stat em {
+  font-style: normal;
+  text-align: right;
+  color: var(--acc);
+}
+
+.csel-doss-foot {
+  margin: 7% 0 0;
+  font: 500 clamp(10px, 0.78vw, 12px) / 1.4 var(--sel-body);
+  color: rgba(241, 230, 218, 0.7);
+}
+
+/* ---------------------------------------------------------------- roster */
+
+.csel-roster {
+  position: absolute;
+  left: 50%;
+  bottom: 2.5vh;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 1.1vw;
+}
+
+.csel-tile {
+  position: relative;
+  width: clamp(80px, 7.8vw, 118px);
+  aspect-ratio: 600 / 796;
+  padding: 0;
+  border: 0;
+  background: url('/art/select/sel-tile.webp') center / 100% 100% no-repeat;
+  cursor: pointer;
+  filter: saturate(0.55) brightness(0.72) drop-shadow(0 10px 16px rgba(10, 4, 12, 0.6));
+  transform: translateY(0) scale(1);
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 240ms ease;
+}
+
+.csel-tile:hover {
+  filter: saturate(0.9) brightness(0.95) drop-shadow(0 12px 18px rgba(10, 4, 12, 0.6));
+  transform: translateY(-4px) scale(1.02);
+}
+
+.csel-tile.on {
+  filter: saturate(1.05) brightness(1.05) drop-shadow(0 0 14px color-mix(in srgb, var(--tile-acc) 75%, transparent))
+    drop-shadow(0 14px 20px rgba(10, 4, 12, 0.6));
+  transform: translateY(-10px) scale(1.14);
+  z-index: 1;
+}
+
+.csel-tile-art {
+  position: absolute;
+  inset: 7% 9% 8% 9%;
+  width: 82%;
+  height: 85%;
   object-fit: cover;
   object-position: center 18%;
-  display: block;
+  clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%);
 }
 
-.outfit-card:hover {
-  filter: saturate(0.9) brightness(0.86);
-  transform: translateX(-4px);
+.csel-tile.on .csel-tile-art {
+  box-shadow: inset 0 0 0 2px var(--tile-acc);
 }
 
-.outfit-card.on {
-  filter: none;
-  border-color: var(--brass);
-  transform: translateX(-10px);
-  box-shadow: 0 0 0 1px rgba(229, 177, 100, 0.5), 0 18px 46px rgba(0, 0, 0, 0.6),
-    0 0 32px rgba(229, 177, 100, 0.22);
+.csel-tile-num {
+  position: absolute;
+  top: 4%;
+  right: 12%;
+  font: 500 clamp(8px, 0.62vw, 10px) / 1 var(--sel-mono);
+  letter-spacing: 0.12em;
+  color: var(--brass);
+  z-index: 1;
 }
 
-.outfit-card .plate {
+.csel-tile-em {
+  position: absolute;
+  left: -10%;
+  top: -10%;
+  width: 36%;
+  opacity: 0;
+  transform: scale(0.6) rotate(-18deg);
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease;
+  filter: drop-shadow(0 4px 6px rgba(10, 4, 12, 0.6));
+  z-index: 2;
+}
+
+.csel-tile.on .csel-tile-em {
+  opacity: 1;
+  transform: scale(1) rotate(-8deg);
+}
+
+.csel-tile-name {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  display: grid;
-  gap: 2px;
-  padding: 8px 10px;
-  text-align: left;
-  background: linear-gradient(0deg, rgba(10, 6, 12, 0.94), rgba(10, 6, 12, 0));
+  bottom: 9%;
+  padding: 3px 0;
+  background: linear-gradient(0deg, rgba(18, 10, 20, 0.92), rgba(18, 10, 20, 0.5) 85%, transparent);
+  font: 400 clamp(10px, 0.9vw, 14px) / 1 var(--sel-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff6ea;
+  z-index: 1;
 }
 
-.outfit-card .plate b {
-  font-size: 14px;
+.csel-tile.on .csel-tile-name {
+  color: var(--tile-acc);
+}
+
+/* -------------------------------------------------------------- controls */
+
+.csel-foot-l,
+.csel-foot-r {
+  position: absolute;
+  bottom: 3.5vh;
+  z-index: 2;
+  display: grid;
+  gap: 1.2vh;
+}
+
+.csel-foot-l {
+  left: 4vw;
+  justify-items: start;
+}
+
+.csel-foot-r {
+  right: 3vw;
+  justify-items: end;
+}
+
+.csel-plate {
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  font-family: var(--sel-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  filter: drop-shadow(0 10px 18px rgba(10, 4, 12, 0.6));
+  transition:
+    transform 140ms ease,
+    filter 140ms ease;
+}
+
+.csel-plate:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08) drop-shadow(0 14px 22px rgba(10, 4, 12, 0.6));
+}
+
+.csel-plate:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.csel-plate.go {
+  width: clamp(230px, 20vw, 330px);
+  aspect-ratio: 1200 / 278;
+  padding-bottom: 1.4%;
+  background-image: url('/art/select/sel-lockin.webp');
+  font-size: clamp(16px, 1.5vw, 25px);
+  color: #2a1606;
+  text-shadow: 0 1px 0 rgba(255, 236, 190, 0.6);
+}
+
+.csel-plate.back {
+  width: clamp(130px, 11vw, 180px);
+  aspect-ratio: 1200 / 206;
+  background-image: url('/art/select/sel-back.webp');
+  font-size: clamp(11px, 0.95vw, 15px);
+  color: #cfe9e6;
+}
+
+.csel-hints {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font: 500 clamp(10px, 0.78vw, 12px) / 1 var(--sel-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #fdf3e6;
+  color: rgba(255, 246, 234, 0.72);
+  text-shadow: 0 1px 4px rgba(18, 10, 20, 0.9);
 }
 
-.outfit-card .plate span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(229, 177, 100, 0.85);
+.csel-hints span {
+  margin-right: 8px;
 }
 
-/* ----------------------------------------------------------------- footer */
-
-.cselect-foot {
-  position: absolute;
-  left: 4vw;
-  bottom: 5vh;
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 12px;
-  align-items: center;
-  max-width: 34vw;
+.csel-hints kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9em;
+  height: 1.9em;
+  padding: 0 0.45em;
+  box-sizing: border-box;
+  border: 1px solid rgba(229, 177, 100, 0.7);
+  border-bottom-width: 2px;
+  background: rgba(18, 10, 20, 0.75);
+  font: inherit;
+  color: var(--brass);
+  clip-path: polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px);
 }
 
-.plate-btn {
-  padding: 14px 30px;
-  border-radius: 2px;
-  font-size: 12px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  cursor: pointer;
-  border: 1px solid rgba(229, 177, 100, 0.55);
-  color: #fdf3e6;
-  background: linear-gradient(180deg, rgba(90, 22, 44, 0.92), rgba(48, 12, 26, 0.92));
-  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.22), 0 12px 30px rgba(0, 0, 0, 0.5);
-  transition: filter 160ms ease;
-}
+/* ------------------------------------------------------------ animation */
 
-.plate-btn:hover {
-  filter: brightness(1.18);
-}
-
-.plate-btn.go {
-  border-color: var(--brass);
-  background: linear-gradient(180deg, rgba(229, 177, 100, 0.95), rgba(168, 116, 48, 0.95));
-  color: #2a1208;
-  font-weight: 600;
-}
-
-.plate-btn.back {
-  background: rgba(18, 10, 20, 0.6);
-  color: #e0c7ae;
-}
-
-.cselect-foot .note {
-  grid-column: 1 / -1;
-  margin: 4px 0 0;
-  max-width: 30rem;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #c3ab9d;
-}
-
-@media (max-width: 900px) {
-  .cselect-head {
-    max-width: 44vw;
+@keyframes csel-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
   }
-
-  .cselect-stage {
-    width: 70vw;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
+}
 
-  .cselect-foot {
-    max-width: 60vw;
+@keyframes csel-slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes csel-em-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.86) rotate(-6deg);
+  }
+  to {
+    opacity: 0.16;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes csel-drift {
+  from {
+    transform: translate(-1.5%, 1%) scale(1.02);
+  }
+  to {
+    transform: translate(1.5%, -1.5%) scale(1.06);
   }
 }
