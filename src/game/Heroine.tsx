@@ -35,6 +35,51 @@ function sitPose(rig: RigProfile): { bone: string; swing: number; spread: number
   ]
 }
 
+/**
+ * Joint limits for the wrists, degrees. The retargeted clips roll some
+ * forearms and wrists far past anatomy (one of Jade's hands arrives 140° off
+ * its bind, Orchid's left forearm rolls ~150°), which candy-wraps the sleeve
+ * and flips the palm; the clip's swing/twist is decomposed about the bone's
+ * own axis each frame and clamped back into range.
+ */
+const WRIST_LIMITS = {
+  forearm: { twist: 45, swing: 180 },
+  hand: { twist: 25, swing: 30 },
+}
+
+interface JointLimit {
+  bone: THREE.Object3D
+  rest: THREE.Quaternion
+  /** Bone axis in its parent's space, towards the child joint. */
+  axis: THREE.Vector3
+  twist: number
+  swing: number
+}
+
+function wristLimits(object: THREE.Object3D, rig: RigProfile): JointLimit[] {
+  const b = rig.bones
+  const out: JointLimit[] = []
+  const add = (name: string, childName: string | null, lim: { twist: number; swing: number }) => {
+    const bone = object.getObjectByName(name)
+    if (!bone) return
+    const child = childName ? object.getObjectByName(childName) : null
+    const axis = child ? child.position.clone().applyQuaternion(bone.quaternion) : bone.position.clone()
+    if (axis.lengthSq() < 1e-8) return
+    out.push({
+      bone,
+      rest: bone.quaternion.clone(),
+      axis: axis.normalize(),
+      twist: THREE.MathUtils.degToRad(lim.twist),
+      swing: THREE.MathUtils.degToRad(lim.swing),
+    })
+  }
+  add(b.forearmL, b.handL, WRIST_LIMITS.forearm)
+  add(b.forearmR, b.handR, WRIST_LIMITS.forearm)
+  add(b.handL, null, WRIST_LIMITS.hand)
+  add(b.handR, null, WRIST_LIMITS.hand)
+  return out
+}
+
 const animUrl = (clips: string, name: AnimName | 'sit') =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`
@@ -146,6 +191,14 @@ export function Heroine({
 
   const weights = useRef({ idle: 1, walk: 0, run: 0 })
   const sitWeight = useRef(0)
+  const wrists = useMemo(() => wristLimits(object, rig), [object, rig])
+  const limit = useRef({
+    delta: new THREE.Quaternion(),
+    twist: new THREE.Quaternion(),
+    swing: new THREE.Quaternion(),
+    inv: new THREE.Quaternion(),
+    swingAxis: new THREE.Vector3(),
+  })
 
   const seated = useMemo(
     () =>
@@ -210,6 +263,7 @@ export function Heroine({
     if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.walk, 0.7, 1.7)
     if (actions.run) actions.run.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.run, 0.7, 1.7)
     mixer.update(reducedMotion ? delta * 0.6 : delta)
+    clampWrists(wrists, limit.current)
 
     if (rig.sitClip) return
     if (sit <= 0.002) {
@@ -262,6 +316,42 @@ export function Heroine({
       <primitive object={object} position-y={-rig.footLift} rotation-y={rig.faceYaw} />
     </>
   )
+}
+
+/** Swing-twist decomposition of each wrist joint about its own axis, clamped to WRIST_LIMITS. */
+function clampWrists(
+  joints: JointLimit[],
+  tmp: {
+    delta: THREE.Quaternion
+    twist: THREE.Quaternion
+    swing: THREE.Quaternion
+    inv: THREE.Quaternion
+    swingAxis: THREE.Vector3
+  },
+) {
+  for (const { bone, rest, axis, twist, swing } of joints) {
+    const q = bone.quaternion
+    tmp.inv.copy(rest).invert()
+    tmp.delta.copy(q).multiply(tmp.inv)
+    const proj = axis.x * tmp.delta.x + axis.y * tmp.delta.y + axis.z * tmp.delta.z
+    let twistAngle = 2 * Math.atan2(proj, tmp.delta.w)
+    if (twistAngle > Math.PI) twistAngle -= 2 * Math.PI
+    else if (twistAngle < -Math.PI) twistAngle += 2 * Math.PI
+    tmp.twist.setFromAxisAngle(axis, twistAngle)
+    tmp.inv.copy(tmp.twist).invert()
+    tmp.swing.copy(tmp.delta).multiply(tmp.inv).normalize()
+    if (tmp.swing.w < 0) tmp.swing.set(-tmp.swing.x, -tmp.swing.y, -tmp.swing.z, -tmp.swing.w)
+    const swingAngle = 2 * Math.acos(Math.min(1, tmp.swing.w))
+    const twistOver = Math.abs(twistAngle) > twist
+    const swingOver = swingAngle > swing
+    if (!twistOver && !swingOver) continue
+    if (twistOver) tmp.twist.setFromAxisAngle(axis, THREE.MathUtils.clamp(twistAngle, -twist, twist))
+    if (swingOver) {
+      tmp.swingAxis.set(tmp.swing.x, tmp.swing.y, tmp.swing.z)
+      if (tmp.swingAxis.lengthSq() > 1e-10) tmp.swing.setFromAxisAngle(tmp.swingAxis.normalize(), swing)
+    }
+    q.copy(tmp.swing).multiply(tmp.twist).multiply(rest)
+  }
 }
 
 /** Seated idle clip, faded in over the gait clips while she is at the desk. */

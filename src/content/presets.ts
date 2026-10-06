@@ -22,7 +22,7 @@ export interface RigProfile {
   sitClip: boolean
   /** Desk-pose swing per joint, signed for this rig's own axis orientation. */
   sit: SitPose
-  /** Bone names for the desk pose, in the order the pose is written. */
+  /** Bone names for the desk pose and the wrist limits. */
   bones: {
     thighL: string
     thighR: string
@@ -34,6 +34,8 @@ export interface RigProfile {
     upperarmR: string
     forearmL: string
     forearmR: string
+    handL: string
+    handR: string
   }
 }
 
@@ -84,6 +86,8 @@ export const RIGS: Record<RigKind, RigProfile> = {
       upperarmR: 'R_Upperarm',
       forearmL: 'L_Forearm',
       forearmR: 'R_Forearm',
+      handL: 'L_Hand',
+      handR: 'R_Hand',
     },
   },
   biped: {
@@ -120,6 +124,8 @@ export const RIGS: Record<RigKind, RigProfile> = {
       upperarmR: 'RightArm',
       forearmL: 'LeftForeArm',
       forearmR: 'RightForeArm',
+      handL: 'LeftHand',
+      handR: 'RightHand',
     },
   },
 }
