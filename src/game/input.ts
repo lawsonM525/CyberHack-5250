@@ -1,7 +1,6 @@
 export interface InputState {
   forward: number
   strafe: number
-  run: boolean
   mouseX: number
   mouseY: number
   recenter: boolean
@@ -19,7 +18,6 @@ const KEY_MAP: Record<string, keyof typeof axes> = {
 }
 
 const axes = { up: false, down: false, left: false, right: false }
-let running = false
 let pendingX = 0
 let pendingY = 0
 let recenterRequested = false
@@ -35,14 +33,12 @@ function onKeyDown(e: KeyboardEvent) {
     axes[axis] = true
     e.preventDefault()
   }
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') running = true
   if (e.code === 'KeyR' && !e.repeat) recenterRequested = true
 }
 
 function onKeyUp(e: KeyboardEvent) {
   const axis = KEY_MAP[e.code]
   if (axis) axes[axis] = false
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') running = false
 }
 
 function onMouseMove(e: MouseEvent) {
@@ -69,7 +65,6 @@ export function drainMouse(): void {
 
 function onBlur() {
   axes.up = axes.down = axes.left = axes.right = false
-  running = false
 }
 
 let installed = false
@@ -110,7 +105,6 @@ export function readInput(): InputState {
   const state: InputState = {
     forward: (axes.up ? 1 : 0) - (axes.down ? 1 : 0),
     strafe: (axes.right ? 1 : 0) - (axes.left ? 1 : 0),
-    run: running,
     // a single frame can never whip the camera further than a quick flick
     mouseX: clampLook(pendingX),
     mouseY: clampLook(pendingY),

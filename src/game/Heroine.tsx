@@ -6,11 +6,11 @@ import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { Character, type MotionState } from './Character'
 import { rigFor, type LookPreset, type RigProfile } from '../content/presets'
 
-const ANIMS = ['idle', 'walk', 'run'] as const
+const ANIMS = ['idle', 'walk'] as const
 type AnimName = (typeof ANIMS)[number]
 
 /**
- * Sitting is posed, not animated: the retargeted clip set is idle/walk/run only.
+ * Sitting is posed, not animated: the retargeted clip set is idle/walk only.
  * The deltas are written in the character's own frame — a swing around the rig's
  * own forward-facing axis moves a limb forward and Y spreads it sideways — and
  * converted into each bone's parent space at runtime, because the retargeted
@@ -105,6 +105,111 @@ function stripRootTravel(clip: THREE.AnimationClip): THREE.AnimationClip {
   return out
 }
 
+/**
+ * How far the idle stance is pulled toward straight, planted legs (0 leaves the
+ * clip alone). The generated idles crouch: knees at ~135° with the feet 0.75 m
+ * apart on the biped rigs, one knee folded to ~140° on the AccuRig one.
+ */
+const IDLE_LEG_RELAX = 0.85
+/** Outward lean of each straightened thigh, so she stands hip-width rather than knock-kneed. */
+const STANCE_TILT = Math.tan(THREE.MathUtils.degToRad(5))
+/** Outward turn of each planted foot. */
+const TOE_OUT = Math.tan(THREE.MathUtils.degToRad(8))
+
+interface LegChain {
+  thigh: THREE.Object3D
+  calf: THREE.Object3D
+  foot: THREE.Object3D
+  toe: THREE.Object3D
+  /** +1 left, -1 right, along the hip line. */
+  side: 1 | -1
+}
+
+function legChains(object: THREE.Object3D, rig: RigProfile): LegChain[] {
+  const b = rig.bones
+  const out: LegChain[] = []
+  const add = (thigh: string, calf: string, foot: string, toe: string, side: 1 | -1) => {
+    const t = object.getObjectByName(thigh)
+    const c = object.getObjectByName(calf)
+    const f = object.getObjectByName(foot)
+    const o = object.getObjectByName(toe)
+    if (t && c && f && o) out.push({ thigh: t, calf: c, foot: f, toe: o, side })
+  }
+  add(b.thighL, b.calfL, b.footL, b.toeL, 1)
+  add(b.thighR, b.calfR, b.footR, b.toeR, -1)
+  return out
+}
+
+interface LegTmp {
+  a: THREE.Vector3
+  b: THREE.Vector3
+  cur: THREE.Vector3
+  target: THREE.Vector3
+  lateral: THREE.Vector3
+  forward: THREE.Vector3
+  rot: THREE.Quaternion
+  parent: THREE.Quaternion
+  parentInv: THREE.Quaternion
+}
+
+const DOWN = new THREE.Vector3(0, -1, 0)
+const IDENTITY = new THREE.Quaternion()
+
+/** Rotates `bone` in world space so the direction towards `child` moves a fraction `k` of the way to `target`. */
+function aimBone(bone: THREE.Object3D, child: THREE.Object3D, target: THREE.Vector3, k: number, tmp: LegTmp) {
+  if (!bone.parent) return
+  bone.updateWorldMatrix(true, true)
+  bone.getWorldPosition(tmp.a)
+  child.getWorldPosition(tmp.b)
+  tmp.cur.subVectors(tmp.b, tmp.a)
+  if (tmp.cur.lengthSq() < 1e-10) return
+  tmp.cur.normalize()
+  tmp.rot.setFromUnitVectors(tmp.cur, target).slerp(IDENTITY, 1 - k)
+  bone.parent.getWorldQuaternion(tmp.parent)
+  tmp.parentInv.copy(tmp.parent).invert()
+  bone.quaternion.premultiply(tmp.parent).premultiply(tmp.rot).premultiply(tmp.parentInv)
+}
+
+/**
+ * Blends the legs towards a relaxed stand: thighs and shins hanging straight
+ * down (a few degrees out), feet flat and pointing the way she faces. Works
+ * in world directions, so it does not depend on either rig's bind pose.
+ */
+function straightenLegs(legs: LegChain[], k: number, object: THREE.Object3D, tmp: LegTmp) {
+  if (legs.length < 2 || !object.parent) return
+  object.updateWorldMatrix(true, true)
+  legs[0].thigh.getWorldPosition(tmp.a)
+  legs[1].thigh.getWorldPosition(tmp.b)
+  tmp.lateral.subVectors(tmp.a, tmp.b)
+  tmp.lateral.y = 0
+  if (tmp.lateral.lengthSq() < 1e-8) return
+  tmp.lateral.normalize()
+  object.parent.getWorldDirection(tmp.forward)
+  tmp.forward.y = 0
+  if (tmp.forward.lengthSq() < 1e-8) return
+  tmp.forward.normalize()
+  for (const leg of legs) {
+    tmp.target.copy(DOWN).addScaledVector(tmp.lateral, leg.side * STANCE_TILT).normalize()
+    aimBone(leg.thigh, leg.calf, tmp.target, k, tmp)
+    aimBone(leg.calf, leg.foot, DOWN, k, tmp)
+    tmp.target.copy(tmp.forward).addScaledVector(tmp.lateral, leg.side * TOE_OUT).normalize()
+    aimBone(leg.foot, leg.toe, tmp.target, k, tmp)
+  }
+}
+
+/** Lowest ankle joint in the presentation group's frame, so the root can set that foot on the floor. */
+function lowestFoot(legs: LegChain[], object: THREE.Object3D, tmp: LegTmp): number {
+  if (!object.parent) return Infinity
+  object.updateWorldMatrix(true, true)
+  let y = Infinity
+  for (const leg of legs) {
+    leg.foot.getWorldPosition(tmp.a)
+    object.parent.worldToLocal(tmp.a)
+    y = Math.min(y, tmp.a.y)
+  }
+  return y
+}
+
 const animUrl = (clips: string, name: AnimName | 'sit') =>
   `${import.meta.env.BASE_URL}models/${clips}-${name}.glb`
 const modelUrl = (file: string) => `${import.meta.env.BASE_URL}models/${file}`
@@ -136,7 +241,7 @@ function useOutfitMap(file: string | undefined): THREE.Texture | null {
 }
 
 /**
- * Generated heroine: a rigged GLB driven by three retargeted clips, cross-faded
+ * Generated heroine: a rigged GLB driven by retargeted idle/walk clips, cross-faded
  * by the gait value the player controller writes every frame.
  */
 export function Heroine({
@@ -153,7 +258,6 @@ export function Heroine({
   const outfitMap = useOutfitMap(look.skinTexture)
   const idle = useGLTF(animUrl(look.clips, 'idle'))
   const walk = useGLTF(animUrl(look.clips, 'walk'))
-  const run = useGLTF(animUrl(look.clips, 'run'))
 
   const object = useMemo(() => {
     const o = clone(scene)
@@ -192,7 +296,6 @@ export function Heroine({
     const map: Record<AnimName, THREE.AnimationAction | null> = {
       idle: pick(idle.animations),
       walk: pick(walk.animations),
-      run: pick(run.animations),
     }
     for (const a of Object.values(map)) {
       if (!a) continue
@@ -201,7 +304,7 @@ export function Heroine({
     }
     map.idle?.setEffectiveWeight(1)
     return map
-  }, [mixer, idle.animations, walk.animations, run.animations])
+  }, [mixer, idle.animations, walk.animations])
 
   useEffect(() => {
     for (const a of Object.values(actions)) {
@@ -214,9 +317,21 @@ export function Heroine({
     }
   }, [mixer, actions])
 
-  const weights = useRef({ idle: 1, walk: 0, run: 0 })
+  const weights = useRef({ idle: 1, walk: 0 })
   const sitWeight = useRef(0)
   const wrists = useMemo(() => wristLimits(object, rig), [object, rig])
+  const legs = useMemo(() => legChains(object, rig), [object, rig])
+  const legTmp = useRef<LegTmp>({
+    a: new THREE.Vector3(),
+    b: new THREE.Vector3(),
+    cur: new THREE.Vector3(),
+    target: new THREE.Vector3(),
+    lateral: new THREE.Vector3(),
+    forward: new THREE.Vector3(),
+    rot: new THREE.Quaternion(),
+    parent: new THREE.Quaternion(),
+    parentInv: new THREE.Quaternion(),
+  })
   const limit = useRef({
     delta: new THREE.Quaternion(),
     twist: new THREE.Quaternion(),
@@ -266,12 +381,8 @@ export function Heroine({
   useFrame((_, rawDelta) => {
     const delta = Math.min(rawDelta, 0.25)
     const raw = motion.current?.gait
-    const gait = Number.isFinite(raw) ? THREE.MathUtils.clamp(raw as number, 0, 2) : 0
-    const target = {
-      idle: Math.max(0, 1 - gait),
-      walk: gait <= 1 ? gait : Math.max(0, 2 - gait),
-      run: Math.max(0, gait - 1),
-    }
+    const gait = Number.isFinite(raw) ? THREE.MathUtils.clamp(raw as number, 0, 1) : 0
+    const target = { idle: 1 - gait, walk: gait }
     const sit = THREE.MathUtils.clamp(motion.current?.sit ?? 0, 0, 1)
     // a retargeted seated clip owns the whole body while she is at the desk, so
     // the gait clips fade out underneath it rather than fighting over the hips
@@ -285,10 +396,19 @@ export function Heroine({
     // the clips are in-place loops, so their feet only plant if they play at
     // the ground speed the controller is actually moving her at
     const speed = motion.current?.speed ?? 0
-    if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / rig.clipSpeed.walk, 0.7, 1.7)
-    if (actions.run) actions.run.timeScale = THREE.MathUtils.clamp(speed / rig.clipSpeed.run, 0.7, 1.7)
+    if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / rig.clipSpeed.walk, 0.8, 1.2)
     mixer.update(reducedMotion ? delta * 0.6 : delta)
     clampWrists(wrists, limit.current)
+
+    // standing still she gets straight, planted legs; the walk clip and the
+    // desk pose take the legs back as they fade in
+    const standing = weights.current.idle * (1 - sit)
+    const relax = IDLE_LEG_RELAX * standing
+    if (relax > 0.001) straightenLegs(legs, relax, object, legTmp.current)
+    const lowest = lowestFoot(legs, object, legTmp.current)
+    const planted = Number.isFinite(lowest) ? object.position.y + rig.soleHeight - lowest : -rig.footLift
+    const wantY = THREE.MathUtils.lerp(-rig.footLift, planted, standing)
+    object.position.y += (wantY - object.position.y) * Math.min(1, delta * 10)
 
     if (rig.sitClip) return
     if (sit <= 0.002) {
@@ -442,7 +562,7 @@ export function HeroBody(props: {
   const fallback = <Character {...props} />
   return (
     <ModelBoundary fallback={fallback}>
-      <Suspense fallback={fallback}>
+      <Suspense fallback={null}>
         <Heroine {...props} />
       </Suspense>
     </ModelBoundary>

@@ -9,8 +9,6 @@ import { useGame } from '../state/store'
 import { audio } from '../audio/audio'
 import { drainMouse, isPointerLocked, readInput } from './input'
 
-const WALK = 2.05
-const RUN = 4.1
 const ACCEL = 14
 /** Roughly her eyeline, and what the boom aims at. */
 const HEAD = 1.4
@@ -142,7 +140,7 @@ export function Player({
     const f = active ? input.forward : 0
     const s = active ? input.strafe : 0
     const mag = Math.min(1, Math.hypot(f, s))
-    const speed = (input.run && active ? RUN : WALK) * mag
+    const speed = (active ? rig.clipSpeed.walk : 0) * mag
     let dx = 0
     let dz = 0
     if (mag > 0.01) {
@@ -185,16 +183,16 @@ export function Player({
       motion.current.turning = 0
       motion.current.still += delta
     }
-    const gait = THREE.MathUtils.clamp(actualSpeed / WALK, 0, 2)
+    const gait = THREE.MathUtils.clamp(actualSpeed / rig.clipSpeed.walk, 0, 1)
     motion.current.gait += (gait - motion.current.gait) * Math.min(1, delta * 12)
     motion.current.speed = actualSpeed
 
     // footsteps
     stepDist.current += moved
-    const stride = actualSpeed > WALK * 1.25 ? 0.78 : 0.62
+    const stride = 0.62
     if (stepDist.current > stride && actualSpeed > 0.4) {
       stepDist.current = 0
-      audio.footstep(actualSpeed > WALK * 1.25)
+      audio.footstep(false)
     }
 
     // sitting down to use the terminal: she slides onto the chair and the rig

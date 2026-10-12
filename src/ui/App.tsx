@@ -387,7 +387,7 @@ function Title() {
           </button>
         </div>
         <p className="keys">
-          WASD move · Shift run · E interact · R recenter · Esc pause
+          WASD move · E interact · R recenter · Esc pause
           <br />
           Sound starts when you press a button. Headphones are nice.
         </p>
@@ -497,9 +497,6 @@ function Hud() {
           <span className="keycap">A</span>
           <span className="keycap">S</span>
           <span className="keycap">D</span> move
-        </span>
-        <span className="pair">
-          <span className="keycap">Shift</span> run
         </span>
         <span className="pair">
           <span className="keycap">E</span> interact

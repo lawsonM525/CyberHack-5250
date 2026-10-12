@@ -16,12 +16,14 @@ export interface RigProfile {
   seatDrop: number
   /** Rig-local lift of the idle soles above the origin, subtracted so she stands on the floor. */
   footLift: number
+  /** Rig-local height of the ankle joint above the sole, so a planted foot can be set on the floor. */
+  soleHeight: number
   /** Axis the desk pose swings a limb forward around, in the rig's own frame. */
   swingAxis: 'x' | 'z'
   /** Sit from a retargeted seated clip (`<clips>-sit.glb`) instead of the posed joints. */
   sitClip: boolean
-  /** Ground speed the in-place gait loops imply at the 1.68 m presentation, m/s (median stance-foot travel). */
-  clipSpeed: { walk: number; run: number }
+  /** Ground speed the in-place walk loop implies at the 1.68 m presentation, m/s (median stance-foot travel); also her walking speed. */
+  clipSpeed: { walk: number }
   /** Desk-pose swing per joint, signed for this rig's own axis orientation. */
   sit: SitPose
   /** Bone names for the desk pose and the wrist limits. */
@@ -38,6 +40,10 @@ export interface RigProfile {
     forearmR: string
     handL: string
     handR: string
+    footL: string
+    footR: string
+    toeL: string
+    toeR: string
   }
 }
 
@@ -64,9 +70,10 @@ export const RIGS: Record<RigKind, RigProfile> = {
     heightScale: 1,
     seatDrop: 0.378,
     footLift: 0,
+    soleHeight: 0.031,
     swingAxis: 'z',
     sitClip: false,
-    clipSpeed: { walk: 1.16, run: 3.7 },
+    clipSpeed: { walk: 1.16 },
     sit: {
       thigh: 1.45,
       calf: -1.5,
@@ -91,6 +98,10 @@ export const RIGS: Record<RigKind, RigProfile> = {
       forearmR: 'R_Forearm',
       handL: 'L_Hand',
       handR: 'R_Hand',
+      footL: 'L_Foot',
+      footR: 'R_Foot',
+      toeL: 'L_ToeBase',
+      toeR: 'R_ToeBase',
     },
   },
   biped: {
@@ -101,9 +112,10 @@ export const RIGS: Record<RigKind, RigProfile> = {
     seatDrop: 0.378,
     // the idle clip leaves the soles ~4 cm above the rig origin
     footLift: 0.048,
+    soleHeight: 0.1,
     swingAxis: 'x',
     sitClip: true,
-    clipSpeed: { walk: 1.6, run: 3.3 },
+    clipSpeed: { walk: 1.6 },
     // measured in game rather than guessed: thighs level with the pad, shins
     // vertical, soles a few cm off the floor plane, hands out over the keyboard
     sit: {
@@ -130,6 +142,10 @@ export const RIGS: Record<RigKind, RigProfile> = {
       forearmR: 'RightForeArm',
       handL: 'LeftHand',
       handR: 'RightHand',
+      footL: 'LeftFoot',
+      footR: 'RightFoot',
+      toeL: 'LeftToeBase',
+      toeR: 'RightToeBase',
     },
   },
 }
@@ -144,7 +160,7 @@ export interface LookPreset {
   clips: string
   rig: RigKind
   /** Per-character corrections to the shared rig profile, measured in game. */
-  fit?: Partial<Pick<RigProfile, 'heightScale' | 'footLift' | 'seatDrop'>>
+  fit?: Partial<Pick<RigProfile, 'heightScale' | 'footLift' | 'soleHeight' | 'seatDrop'>>
   /** Recoloured base-colour map in public/models; omitted keeps the GLB's own. */
   skinTexture?: string
   skin: string
@@ -190,7 +206,7 @@ export const LOOKS: LookPreset[] = [
     clips: 'anim-nova',
     rig: 'biped',
     // taller silhouette and platform soles that hang below the foot joint
-    fit: { heightScale: 1 / 1.991, footLift: -0.04 },
+    fit: { heightScale: 1 / 1.991, footLift: -0.04, soleHeight: 0.09 },
     skin: '#e8c3ad',
     skinShadow: '#c49a83',
     hair: 'afro',
