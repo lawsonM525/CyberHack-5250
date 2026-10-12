@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>asset inspect</title>
+    <style>
+      body { margin: 0; background: #14121c; color: #eee; font: 12px system-ui; }
+      .grid { display: flex; flex-wrap: wrap; }
+      .cell { position: relative; }
+      .cell span { position: absolute; left: 6px; top: 4px; z-index: 2; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="grid" id="grid"></div>
+    <script type="module">
+      import * as THREE from 'three'
+      import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+      import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
+
+      const params = new URLSearchParams(location.search)
+      const names = (params.get('models') || 'sofa,floorlamp,monstera,vanity,desk,incense,speaker,bookshelf').split(',')
+      const angles = Number(params.get('angles') || 1)
+      const cols = Number(params.get('cols') || 4)
+      const loader = new GLTFLoader()
+      const W = Math.floor(window.innerWidth / cols)
+      const H = Math.floor(window.innerHeight / Math.max(1, Math.ceil((names.length * angles) / cols)))
+
+      for (const name of names) {
+        for (let i = 0; i < angles; i++) {
+          const yaw = (i / angles) * Math.PI * 2
+          const cell = document.createElement('div')
+          cell.className = 'cell'
+          const label = document.createElement('span')
+          label.textContent = name
+          cell.appendChild(label)
+          document.getElementById('grid').appendChild(cell)
+
+          const renderer = new THREE.WebGLRenderer({ antialias: true })
+          renderer.setSize(W, H)
+          renderer.setPixelRatio(1)
+          cell.appendChild(renderer.domElement)
+          const scene = new THREE.Scene()
+          scene.background = new THREE.Color('#1b1826')
+          scene.add(new THREE.HemisphereLight('#cfe0ff', '#33241a', 2.2))
+          const key = new THREE.DirectionalLight('#ffd9b0', 2.4)
+          key.position.set(2, 3, 3)
+          scene.add(key)
+          const cam = new THREE.PerspectiveCamera(32, W / H, 0.01, 100)
+
+          loader.load('/models/' + name + '.glb', (gltf) => {
+            const g = { scene: params.get('clone') ? skeletonClone(gltf.scene) : gltf.scene, animations: gltf.animations }
+            g.scene.updateMatrixWorld(true)
+            const box = new THREE.Box3().setFromObject(g.scene)
+            const size = box.getSize(new THREE.Vector3())
+            const center = box.getCenter(new THREE.Vector3())
+            label.textContent = name + ' ' + size.toArray().map((v) => v.toFixed(2)).join(' x ')
+            const r = Math.max(size.x, size.y, size.z)
+            scene.add(g.scene)
+            let mixer = null
+            if (g.animations.length) {
+              mixer = new THREE.AnimationMixer(g.scene)
+              mixer.clipAction(g.animations[0]).play()
+              label.textContent += ' | clips: ' + g.animations.map((c) => c.name).join(',')
+            }
+            // ?anim=name applies a clip from a separate animation-only glb
+            const anim = params.get('anim')
+            if (anim) {
+              loader.load('/models/' + anim + '.glb', (a) => {
+                mixer = new THREE.AnimationMixer(g.scene)
+                mixer.clipAction(a.animations[0]).play()
+                label.textContent += ' | anim: ' + a.animations[0].name
+              })
+            }
+            cam.position.set(center.x + Math.sin(yaw) * r * 1.7, center.y + r * 0.15, center.z + Math.cos(yaw) * r * 1.7)
+            cam.lookAt(center)
+            const clock = new THREE.Clock()
+            renderer.setAnimationLoop(() => {
+              if (mixer) mixer.update(clock.getDelta())
+              renderer.render(scene, cam)
+            })
+          })
+        }
+      }
+    </script>
+  </body>
+</html>
