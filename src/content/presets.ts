@@ -20,6 +20,8 @@ export interface RigProfile {
   swingAxis: 'x' | 'z'
   /** Sit from a retargeted seated clip (`<clips>-sit.glb`) instead of the posed joints. */
   sitClip: boolean
+  /** Ground speed the in-place gait loops imply at the 1.68 m presentation, m/s (median stance-foot travel). */
+  clipSpeed: { walk: number; run: number }
   /** Desk-pose swing per joint, signed for this rig's own axis orientation. */
   sit: SitPose
   /** Bone names for the desk pose and the wrist limits. */
@@ -64,6 +66,7 @@ export const RIGS: Record<RigKind, RigProfile> = {
     footLift: 0,
     swingAxis: 'z',
     sitClip: false,
+    clipSpeed: { walk: 1.16, run: 3.7 },
     sit: {
       thigh: 1.45,
       calf: -1.5,
@@ -100,6 +103,7 @@ export const RIGS: Record<RigKind, RigProfile> = {
     footLift: 0.048,
     swingAxis: 'x',
     sitClip: true,
+    clipSpeed: { walk: 1.6, run: 3.3 },
     // measured in game rather than guessed: thighs level with the pad, shins
     // vertical, soles a few cm off the floor plane, hands out over the keyboard
     sit: {

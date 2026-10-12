@@ -7,8 +7,6 @@ import { Character, type MotionState } from './Character'
 import { rigFor, type LookPreset, type RigProfile } from '../content/presets'
 
 const ANIMS = ['idle', 'walk', 'run'] as const
-/** Ground speed the retargeted loops cover at the 1.68 m presentation, m/s (measured from foot travel during stance). */
-const CLIP_SPEED = { walk: 1.6, run: 3.5 }
 type AnimName = (typeof ANIMS)[number]
 
 /**
@@ -77,6 +75,33 @@ function wristLimits(object: THREE.Object3D, rig: RigProfile): JointLimit[] {
   add(b.forearmR, b.handR, WRIST_LIMITS.forearm)
   add(b.handL, null, WRIST_LIMITS.hand)
   add(b.handR, null, WRIST_LIMITS.hand)
+  return out
+}
+
+/**
+ * Plays a clip in place: the net root travel over the loop is subtracted from
+ * every position track so the controller alone moves her. The generated walk
+ * and run loops for the AccuRig heroine carry real root motion (the hip
+ * travels 1.5 / 2.9 rig units per loop), which otherwise blends in as a lurch
+ * ahead when the gait fades up and a snap back on every loop wrap.
+ */
+function stripRootTravel(clip: THREE.AnimationClip): THREE.AnimationClip {
+  const out = clip.clone()
+  for (const track of out.tracks) {
+    if (!(track instanceof THREE.VectorKeyframeTrack) || !track.name.endsWith('.position')) continue
+    const { times, values } = track
+    const n = times.length
+    if (n < 2) continue
+    const span = times[n - 1] - times[0]
+    if (span <= 0) continue
+    const last = (n - 1) * 3
+    const drift = [values[last] - values[0], values[last + 1] - values[1], values[last + 2] - values[2]]
+    if (Math.hypot(drift[0], drift[1], drift[2]) < 1e-4) continue
+    for (let i = 0; i < n; i++) {
+      const f = (times[i] - times[0]) / span
+      for (let k = 0; k < 3; k++) values[i * 3 + k] -= drift[k] * f
+    }
+  }
   return out
 }
 
@@ -163,7 +188,7 @@ export function Heroine({
   const mixer = useMemo(() => new THREE.AnimationMixer(object), [object])
   const actions = useMemo(() => {
     const pick = (clips: THREE.AnimationClip[]) =>
-      clips.length ? mixer.clipAction(clips[0]) : null
+      clips.length ? mixer.clipAction(stripRootTravel(clips[0])) : null
     const map: Record<AnimName, THREE.AnimationAction | null> = {
       idle: pick(idle.animations),
       walk: pick(walk.animations),
@@ -260,8 +285,8 @@ export function Heroine({
     // the clips are in-place loops, so their feet only plant if they play at
     // the ground speed the controller is actually moving her at
     const speed = motion.current?.speed ?? 0
-    if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.walk, 0.7, 1.7)
-    if (actions.run) actions.run.timeScale = THREE.MathUtils.clamp(speed / CLIP_SPEED.run, 0.7, 1.7)
+    if (actions.walk) actions.walk.timeScale = THREE.MathUtils.clamp(speed / rig.clipSpeed.walk, 0.7, 1.7)
+    if (actions.run) actions.run.timeScale = THREE.MathUtils.clamp(speed / rig.clipSpeed.run, 0.7, 1.7)
     mixer.update(reducedMotion ? delta * 0.6 : delta)
     clampWrists(wrists, limit.current)
 
